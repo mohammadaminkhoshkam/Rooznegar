@@ -52,7 +52,7 @@ namespace Rooznegar
             return Color.FromArgb((int)(a.A + (b.A - a.A) * t), (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
         }
         public static Color Alpha(Color c, int alpha) { return Color.FromArgb(Math.Max(0, Math.Min(255, alpha)), c); }
-        /// <summary>Follows Windows' "app mode" (light/dark) when the theme setting is «system».</summary>
+        /// <summary>Follows Windows' "app mode" (light/dark) when the theme setting is "system".</summary>
         public static bool SystemPrefersDark()
         {
             try
@@ -89,7 +89,7 @@ namespace Rooznegar
         }
     }
 
-    /// <summary>Loads the embedded Vazirmatn family once and hands out cached Font objects.</summary>
+    /// <summary>Loads the embedded Inter family once and hands out cached Font objects.</summary>
     public static class Fonts
     {
         [DllImport("gdi32.dll")] private static extern IntPtr AddFontMemResourceEx(IntPtr pbFont, uint cbFont, IntPtr pdv, ref uint pcFonts);
@@ -102,7 +102,7 @@ namespace Rooznegar
         public static void Init()
         {
             var asm = typeof(Fonts).Assembly;
-            foreach (string file in new[] { "Vazirmatn-Regular.ttf", "Vazirmatn-Bold.ttf", "Vazirmatn-Medium.ttf", "Vazirmatn-ExtraBold.ttf" })
+            foreach (string file in new[] { "Inter-Regular.ttf", "Inter-Bold.ttf", "Inter-Medium.ttf", "Inter-ExtraBold.ttf" })
             {
                 try
                 {
@@ -125,9 +125,9 @@ namespace Rooznegar
             }
             foreach (var f in collection.Families)
             {
-                if (f.Name == "Vazirmatn") regular = f;
-                else if (f.Name == "Vazirmatn Medium") medium = f;
-                else if (f.Name == "Vazirmatn ExtraBold") black = f;
+                if (f.Name == "Inter") regular = f;
+                else if (f.Name == "Inter Medium") medium = f;
+                else if (f.Name == "Inter ExtraBold") black = f;
             }
         }
         public static Font Get(float size, Weight weight = Weight.Regular)
@@ -150,7 +150,7 @@ namespace Rooznegar
         private static string FallbackName()
         {
             using (var installed = new InstalledFontCollection())
-                foreach (string name in new[] { "Vazirmatn", "Segoe UI", "Tahoma" })
+                foreach (string name in new[] { "Inter", "Segoe UI", "Tahoma" })
                     if (installed.Families.Any(x => x.Name == name)) return name;
             return FontFamily.GenericSansSerif.Name;
         }
@@ -162,6 +162,24 @@ namespace Rooznegar
     public static class Ui
     {
         public static readonly bool IsMono = Type.GetType("Mono.Runtime") != null;
+        /// <summary>
+        /// Reading direction. Layout code measures from the start edge, which it writes as the right-hand side
+        /// (<c>Width - Pad - …</c>, <see cref="Align.Right"/>). When this is false, every surface mirrors that
+        /// layout horizontally (see <see cref="Mirror"/>), so the same code produces a left-to-right UI.
+        /// </summary>
+        public static bool Rtl = false;
+        public static RightToLeft Direction { get { return Rtl ? RightToLeft.Yes : RightToLeft.No; } }
+        /// <summary>Mirrors a surface's coordinate system for left-to-right reading. Call once at the start of painting.</summary>
+        public static void Mirror(Graphics g, int width)
+        {
+            if (Rtl) return;
+            g.TranslateTransform(width, 0); g.ScaleTransform(-1, 1);
+        }
+        /// <summary>Mirrors the bounds of a native child control (TextBox, nested surface) inside a parent of the given width.</summary>
+        public static Rectangle Flip(Rectangle r, int width)
+        {
+            return Rtl ? r : new Rectangle(width - r.Right, r.Y, r.Width, r.Height);
+        }
         public static float Scale = 1f;
         public static int S(double v) { return (int)Math.Round(v * Scale); }
         /// <summary>Font sizes are in points (already DPI-scaled by Windows); this shrinks them when the layout is capped.</summary>
@@ -225,25 +243,37 @@ namespace Rooznegar
             f |= multiline ? TextFormatFlags.WordBreak | TextFormatFlags.Top : TextFormatFlags.SingleLine | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;
             if (align == Align.Center) f |= TextFormatFlags.HorizontalCenter;
             else if (align == Align.Right) f |= TextFormatFlags.Right;
-            if (rtl && !IsMono) f |= TextFormatFlags.RightToLeft;
+            if (rtl && Rtl && !IsMono) f |= TextFormatFlags.RightToLeft;
             return f;
         }
+        /// <summary>
+        /// Draws text in a layout rectangle. On a mirrored surface the rectangle moves to its mirrored position and
+        /// start/end alignment swaps, but the glyphs themselves are drawn unmirrored.
+        /// </summary>
         public static void Text(Graphics g, string text, Font font, Color color, Rectangle r, Align align = Align.Right, bool multiline = false, bool rtl = true)
         {
             if (string.IsNullOrEmpty(text) || r.Width <= 0) return;
-            if (IsMono) text = rtl ? Shaper.Visual(text) : text;
-            TextRenderer.DrawText(g, text, font, r, color, Flags(align, multiline, rtl));
+            using (var m = g.Transform)
+            {
+                if (m.Elements[0] >= 0) { TextRenderer.DrawText(g, text, font, r, color, Flags(align, multiline, rtl)); return; }
+                var corners = new[] { new Point(r.Left, r.Top), new Point(r.Right, r.Bottom) };
+                m.TransformPoints(corners);
+                var box = Rectangle.FromLTRB(Math.Min(corners[0].X, corners[1].X), Math.Min(corners[0].Y, corners[1].Y), Math.Max(corners[0].X, corners[1].X), Math.Max(corners[0].Y, corners[1].Y));
+                if (align == Align.Right) align = Align.Left; else if (align == Align.Left) align = Align.Right;
+                // Not g.Save(): TextRenderer adds the translation of every saved state, which would shift the text.
+                g.ResetTransform();
+                try { TextRenderer.DrawText(g, text, font, box, color, Flags(align, multiline, rtl)); }
+                finally { g.Transform = m; }
+            }
         }
         public static Size Measure(Graphics g, string text, Font font, bool rtl = true)
         {
             if (string.IsNullOrEmpty(text)) return Size.Empty;
-            if (IsMono && rtl) text = Shaper.Visual(text);
             return TextRenderer.MeasureText(g, text, font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
         }
         public static int MeasureHeight(Graphics g, string text, Font font, int width)
         {
             if (string.IsNullOrEmpty(text)) return 0;
-            if (IsMono) text = Shaper.Visual(text);
             return TextRenderer.MeasureText(g, text, font, new Size(width, int.MaxValue), TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.WordBreak).Height;
         }
         public static void HighQuality(Graphics g)
@@ -254,91 +284,6 @@ namespace Rooznegar
         public static Color Readable(Color background)
         {
             return background.GetBrightness() > 0.62 || (background.R * 0.299 + background.G * 0.587 + background.B * 0.114) > 170 ? Color.FromArgb(20, 32, 30) : Color.White;
-        }
-    }
-
-    /// <summary>
-    /// Under Mono (used only for headless previews) libgdiplus has no Arabic shaping or bidi, so text is
-    /// converted to presentation forms and visual order there. On Windows, GDI/Uniscribe does this natively.
-    /// </summary>
-    public static class Shaper
-    {
-        private static readonly Dictionary<char, int[]> forms = new Dictionary<char, int[]>();
-        private static void F(char c, int iso, int count)
-        {
-            // count 2 = right-joining (iso, fin); 4 = dual-joining (iso, fin, ini, med)
-            forms[c] = count == 4 ? new[] { iso, iso + 1, iso + 2, iso + 3 } : count == 2 ? new[] { iso, iso + 1, -1, -1 } : new[] { iso, -1, -1, -1 };
-        }
-        static Shaper()
-        {
-            F('ء', 0xFE80, 1); F('آ', 0xFE81, 2); F('أ', 0xFE83, 2); F('ؤ', 0xFE85, 2); F('إ', 0xFE87, 2); F('ئ', 0xFE89, 4);
-            F('ا', 0xFE8D, 2); F('ب', 0xFE8F, 4); F('ة', 0xFE93, 2); F('ت', 0xFE95, 4); F('ث', 0xFE99, 4); F('ج', 0xFE9D, 4);
-            F('ح', 0xFEA1, 4); F('خ', 0xFEA5, 4); F('د', 0xFEA9, 2); F('ذ', 0xFEAB, 2); F('ر', 0xFEAD, 2); F('ز', 0xFEAF, 2);
-            F('س', 0xFEB1, 4); F('ش', 0xFEB5, 4); F('ص', 0xFEB9, 4); F('ض', 0xFEBD, 4); F('ط', 0xFEC1, 4); F('ظ', 0xFEC5, 4);
-            F('ع', 0xFEC9, 4); F('غ', 0xFECD, 4); F('ف', 0xFED1, 4); F('ق', 0xFED5, 4); F('ك', 0xFED9, 4); F('ل', 0xFEDD, 4);
-            F('م', 0xFEE1, 4); F('ن', 0xFEE5, 4); F('ه', 0xFEE9, 4); F('و', 0xFEED, 2); F('ى', 0xFEEF, 2); F('ي', 0xFEF1, 4);
-            F('پ', 0xFB56, 4); F('چ', 0xFB7A, 4); F('ژ', 0xFB8A, 2); F('ک', 0xFB8E, 4); F('گ', 0xFB92, 4); F('ی', 0xFBFC, 4);
-        }
-        private static bool Dual(char c) { int[] f; return forms.TryGetValue(c, out f) && f[2] >= 0; }
-        private static bool Joins(char c) { int[] f; return forms.TryGetValue(c, out f) && f[1] >= 0; }
-        private static bool Mark(char c) { return c >= 'ً' && c <= 'ْ'; }
-        private static string Shape(string s)
-        {
-            var b = new StringBuilder();
-            for (int i = 0; i < s.Length; i++)
-            {
-                char c = s[i]; int[] f;
-                if (!forms.TryGetValue(c, out f)) { b.Append(c); continue; }
-                int p = i - 1; while (p >= 0 && Mark(s[p])) p--;
-                int n = i + 1; while (n < s.Length && Mark(s[n])) n++;
-                bool prev = p >= 0 && Dual(s[p]);
-                if (c == 'ل' && n < s.Length && (s[n] == 'ا' || s[n] == 'آ'))
-                {
-                    b.Append((char)(s[n] == 'ا' ? (prev ? 0xFEFC : 0xFEFB) : (prev ? 0xFEF6 : 0xFEF5))); i = n; continue;
-                }
-                bool next = n < s.Length && Joins(s[n]) && f[2] >= 0;
-                int form = prev && next ? 3 : prev ? 1 : next ? 2 : 0;
-                if (f[form] < 0) form = prev && f[1] >= 0 ? 1 : 0;
-                b.Append((char)f[form]);
-            }
-            return b.ToString();
-        }
-        private static bool Ltr(char c)
-        {
-            return (c >= '0' && c <= '9') || (c >= '۰' && c <= '۹') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-        }
-        private static char Mirror(char c) { return c == '(' ? ')' : c == ')' ? '(' : c == '«' ? '»' : c == '»' ? '«' : c == '[' ? ']' : c == ']' ? '[' : c; }
-        public static string Visual(string text)
-        {
-            if (string.IsNullOrEmpty(text)) return text;
-            if (text.IndexOf('\n') >= 0) return string.Join("\n", text.Split('\n').Select(Visual).ToArray());
-            bool hasRtl = text.Any(c => c >= '؀' && c <= 'ۿ' && !(c >= '۰' && c <= '۹'));
-            if (!hasRtl) return text;
-            string shaped = Shape(text.Replace("‌", "​"));
-            // Split into LTR runs (letters/digits plus separators between them) and RTL/neutral runs.
-            var runs = new List<KeyValuePair<bool, string>>();
-            int i = 0;
-            while (i < shaped.Length)
-            {
-                if (Ltr(shaped[i]))
-                {
-                    int j = i + 1;
-                    while (j < shaped.Length && (Ltr(shaped[j]) || ((":/.,٫%٪-_".IndexOf(shaped[j]) >= 0 || shaped[j] == ' ' && j + 1 < shaped.Length && (shaped[j + 1] >= 'A' && shaped[j + 1] <= 'z')) && j + 1 < shaped.Length && Ltr(shaped[j + 1])))) j++;
-                    runs.Add(new KeyValuePair<bool, string>(true, shaped.Substring(i, j - i))); i = j;
-                }
-                else
-                {
-                    int j = i + 1; while (j < shaped.Length && !Ltr(shaped[j])) j++;
-                    runs.Add(new KeyValuePair<bool, string>(false, shaped.Substring(i, j - i))); i = j;
-                }
-            }
-            var b = new StringBuilder();
-            for (int r = runs.Count - 1; r >= 0; r--)
-            {
-                if (runs[r].Key) b.Append(runs[r].Value);
-                else { var chars = runs[r].Value.ToCharArray(); Array.Reverse(chars); foreach (char c in chars) b.Append(Mirror(c)); }
-            }
-            return b.ToString();
         }
     }
 
@@ -358,6 +303,8 @@ namespace Rooznegar
             float k = Math.Min(r.Width, r.Height) / 24f;
             g.TranslateTransform(r.X + (r.Width - 24 * k) / 2, r.Y + (r.Height - 24 * k) / 2);
             g.ScaleTransform(k, k);
+            // On a mirrored surface icons keep their drawn orientation; only chevrons follow the reading direction.
+            if (g.Transform.Elements[0] < 0 && glyph != Glyph.ChevronLeft && glyph != Glyph.ChevronRight) { g.TranslateTransform(24, 0); g.ScaleTransform(-1, 1); }
             using (var pen = new Pen(color, stroke * Ui.Scale / Math.Max(0.2f, k)))
             using (var brush = new SolidBrush(color))
             {

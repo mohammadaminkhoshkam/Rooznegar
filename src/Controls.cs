@@ -35,8 +35,10 @@ namespace Rooznegar
         {
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
             SetStyle(ControlStyles.Selectable, false);
-            RightToLeft = RightToLeft.Yes;
+            RightToLeft = Ui.Direction;
         }
+        /// <summary>Converts a point in window pixels to the (possibly mirrored) layout coordinates used by Draw and AddHit.</summary>
+        public Point ToLogical(Point p) { return Ui.Rtl ? p : new Point(Width - p.X, p.Y); }
         protected virtual Color Background { get { return Palette.Bg; } }
         protected virtual void Draw(Graphics g) { }
 
@@ -50,12 +52,13 @@ namespace Rooznegar
         }
         private void PaintBody(Graphics g)
         {
+            Ui.Mirror(g, Width);
             if (Scrollable)
             {
                 ClampScroll();
                 g.TranslateTransform(0, -ScrollY);
                 Draw(g);
-                g.ResetTransform();
+                g.ResetTransform(); Ui.Mirror(g, Width);
                 if (ContentHeight > Height)
                 {
                     var bar = ScrollThumb();
@@ -116,8 +119,8 @@ namespace Rooznegar
                 ScrollY = (int)((e.Y - dragOffset - Ui.S(4)) * (double)(ContentHeight - Height) / Math.Max(1, track - h));
                 ClampScroll(); Invalidate(); return;
             }
-            Mouse = e.Location;
-            var hit = Find(e.Location);
+            Mouse = ToLogical(e.Location);
+            var hit = Find(Mouse);
             string id = hit == null ? null : hit.Id;
             Cursor = hit != null && (hit.Click != null || hit.DoubleClick != null) ? Cursors.Hand : Cursors.Default;
             if (id != HoverId || (hit != null && hit.Tip != null) || WantsMouseRepaint) { HoverId = id; Invalidate(); }
@@ -133,20 +136,21 @@ namespace Rooznegar
         {
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left) return;
-            if (Scrollable && ContentHeight > Height && e.X < Ui.S(14))
+            var p = ToLogical(e.Location);
+            if (Scrollable && ContentHeight > Height && p.X < Ui.S(14))
             {
                 var thumb = ScrollThumb();
-                if (thumb.Contains(e.Location)) { draggingBar = true; dragOffset = e.Y - thumb.Y; Capture = true; return; }
+                if (thumb.Contains(p)) { draggingBar = true; dragOffset = e.Y - thumb.Y; Capture = true; return; }
                 ScrollY += e.Y < thumb.Y ? -Height + Ui.S(40) : Height - Ui.S(40); ClampScroll(); Invalidate(); return;
             }
-            var hit = Find(e.Location); pressedId = hit == null ? null : hit.Id; Invalidate();
+            var hit = Find(p); pressedId = hit == null ? null : hit.Id; Invalidate();
         }
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
             if (draggingBar) { draggingBar = false; Capture = false; Invalidate(); return; }
             if (e.Button != MouseButtons.Left) return;
-            var hit = Find(e.Location);
+            var hit = Find(ToLogical(e.Location));
             string pressed = pressedId; pressedId = null;
             if (hit != null && hit.Id == pressed && hit.Click != null) { Invalidate(); Run(hit.Click); return; }
             Invalidate();
@@ -154,7 +158,7 @@ namespace Rooznegar
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
-            var hit = Find(e.Location);
+            var hit = Find(ToLogical(e.Location));
             if (hit != null && hit.DoubleClick != null) Run(hit.DoubleClick);
         }
         /// <summary>
@@ -204,7 +208,7 @@ namespace Rooznegar
             else
             {
                 int tw = Ui.Measure(g, text, font).Width, iw = icon.HasValue ? Ui.S(18) + Ui.S(7) : 0;
-                int start = r.X + (r.Width + tw + iw) / 2; // RTL: icon sits to the right of the text
+                int start = r.X + (r.Width + tw + iw) / 2; // the icon sits on the start side of the text
                 if (icon.HasValue) Icons.Draw(g, icon.Value, new RectangleF(start - Ui.S(18), r.Y + (r.Height - Ui.S(18)) / 2f, Ui.S(18), Ui.S(18)), ink);
                 Ui.Text(g, text, font, ink, new Rectangle(start - iw - tw - Ui.S(2), r.Y, tw + Ui.S(4), r.Height), Align.Center);
             }
@@ -227,7 +231,7 @@ namespace Rooznegar
             var track = new Rectangle(r.X, r.Y + (r.Height - Ui.S(22)) / 2, Ui.S(40), Ui.S(22));
             Ui.Fill(g, track, on ? Palette.Accent : (Hot(id) ? Palette.Ink3 : Palette.LineStrong), track.Height / 2);
             int d = track.Height - Ui.S(6);
-            // RTL switch: the knob sits on the left when on.
+            // The knob moves to the end side when on.
             int kx = on ? track.X + Ui.S(3) : track.Right - Ui.S(3) - d;
             Ui.Circle(g, new RectangleF(kx, track.Y + Ui.S(3), d, d), Color.White);
             AddHit(track, id, click);
@@ -239,7 +243,7 @@ namespace Rooznegar
             int w = r.Width / items.Length;
             for (int i = 0; i < items.Length; i++)
             {
-                // First item is right-most (RTL).
+                // The first item sits at the start edge.
                 var cell = new Rectangle(r.Right - (i + 1) * w, r.Y, w, r.Height);
                 string hid = id + i; int index = i;
                 var inner = Rectangle.Inflate(cell, -Ui.S(3), -Ui.S(3));
@@ -253,7 +257,9 @@ namespace Rooznegar
         {
             Ui.Fill(g, r, Palette.Sunken, Ui.S(10));
             int b = r.Height;
+            // Plus goes on the visual right in either direction (layout x runs right-to-left before mirroring).
             var right = new Rectangle(r.Right - b, r.Y, b, b); var left = new Rectangle(r.X, r.Y, b, b);
+            if (!Ui.Rtl) { var t = right; right = left; left = t; }
             IconButton(g, Rectangle.Inflate(right, -Ui.S(4), -Ui.S(4)), Glyph.Plus, id + "+", plus, null);
             var minusRect = Rectangle.Inflate(left, -Ui.S(4), -Ui.S(4));
             if (Hot(id + "-")) Ui.Fill(g, minusRect, Palette.Surface2, Ui.S(8));
@@ -314,7 +320,7 @@ namespace Rooznegar
         {
             Text = text; Kind = kind; Icon = icon; Cursor = Cursors.Hand; TabStop = true;
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
-            Size = new Size(Ui.S(120), Ui.S(40)); RightToLeft = RightToLeft.Yes;
+            Size = new Size(Ui.S(120), Ui.S(40)); RightToLeft = Ui.Direction;
         }
         public void NotifyDefault(bool value) { isDefault = value; Invalidate(); }
         public void PerformClick() { if (Enabled && Visible) OnClick(EventArgs.Empty); }
@@ -342,6 +348,7 @@ namespace Rooznegar
         {
             var g = e.Graphics; Ui.HighQuality(g);
             g.Clear(Under ?? (Parent != null ? Parent.BackColor : Palette.Bg));
+            Ui.Mirror(g, Width);
             Color fill, ink, border = Color.Empty;
             switch (Kind)
             {
@@ -381,12 +388,12 @@ namespace Rooznegar
         public InputBox(bool multiline = false)
         {
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-            Box = new TextBox { BorderStyle = BorderStyle.None, Multiline = multiline, RightToLeft = RightToLeft.Yes, Font = Fonts.Get(10.5f), BackColor = Palette.Surface, ForeColor = Palette.Ink };
+            Box = new TextBox { BorderStyle = BorderStyle.None, Multiline = multiline, RightToLeft = Ui.Direction, Font = Fonts.Get(10.5f), BackColor = Palette.Surface, ForeColor = Palette.Ink };
             if (multiline) { Box.ScrollBars = ScrollBars.None; Box.AcceptsReturn = true; }
             Controls.Add(Box);
             Box.GotFocus += (s, e) => Invalidate(); Box.LostFocus += (s, e) => Invalidate();
             Box.HandleCreated += (s, e) => ApplyPlaceholder();
-            Size = new Size(Ui.S(240), Ui.S(42)); RightToLeft = RightToLeft.Yes; Cursor = Cursors.IBeam;
+            Size = new Size(Ui.S(240), Ui.S(42)); RightToLeft = Ui.Direction; Cursor = Cursors.IBeam;
         }
         public string Placeholder { get { return placeholder; } set { placeholder = value ?? ""; ApplyPlaceholder(); } }
         private void ApplyPlaceholder()
@@ -403,7 +410,7 @@ namespace Rooznegar
             else
             {
                 int h = Box.PreferredHeight;
-                Box.Bounds = new Rectangle(pad, (Height - h) / 2, Width - pad * 2 - iconW, h);
+                Box.Bounds = Ui.Flip(new Rectangle(pad, (Height - h) / 2, Width - pad * 2 - iconW, h), Width);
             }
         }
         public void Retheme() { Box.BackColor = Palette.Surface; Box.ForeColor = Palette.Ink; Invalidate(); }
@@ -411,6 +418,7 @@ namespace Rooznegar
         {
             var g = e.Graphics; Ui.HighQuality(g);
             g.Clear(Parent != null ? Parent.BackColor : Palette.Bg);
+            Ui.Mirror(g, Width);
             var r = new Rectangle(0, 0, Width - 1, Height - 1);
             Ui.Fill(g, r, Palette.Surface, Ui.S(10));
             bool focus = Box.Focused;
@@ -421,7 +429,7 @@ namespace Rooznegar
         }
     }
 
-    /// <summary>Transient message at the bottom of the window, optionally with an action such as «بازگردانی».</summary>
+    /// <summary>Transient message at the bottom of the window, optionally with an action such as "Undo".</summary>
     public sealed class Toast : Surface
     {
         private string message = "", action;

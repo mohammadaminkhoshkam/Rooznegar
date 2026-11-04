@@ -31,7 +31,7 @@ namespace Rooznegar
         public string Search = "";
         public bool ShowArchived;
         public long FocusAnchor;
-        public string HotkeyStatus = "خاموش";
+        public string HotkeyStatus = "Off";
 
         private readonly Store store;
         private readonly bool preview;
@@ -52,7 +52,7 @@ namespace Rooznegar
         {
             store = storage; State = data; preview = previewMode;
             ApplyThemeSetting();
-            Text = "روزنگار";
+            Text = "Rooznegar";
             AutoScaleMode = AutoScaleMode.None;
             var workArea = Screen.PrimaryScreen.WorkingArea;
             ClientSize = new Size(Math.Min(Ui.S(1320), workArea.Width - Ui.S(40)), Math.Min(Ui.S(860), workArea.Height - Ui.S(56)));
@@ -77,11 +77,11 @@ namespace Rooznegar
             ticker = new Timer { Interval = 1000 }; ticker.Tick += (s, e) => Tick(); ticker.Start();
             Shown += (s, e) =>
             {
-                if (!preview && !string.IsNullOrEmpty(store.RecoveryMessage)) Dialogs.Message(this, "بازیابی داده‌ها", store.RecoveryMessage);
+                if (!preview && !string.IsNullOrEmpty(store.RecoveryMessage)) Dialogs.Message(this, "Data recovery", store.RecoveryMessage);
                 if (!preview && State.Active != null)
                 {
-                    bool resume = Dialogs.Confirm(this, "تایمر از اجرای قبلی باز مانده است",
-                        "«ادامه» همهٔ زمان از شروع قبلی تا اکنون را ثبت می‌کند.\n«انصراف» ثبت را در آخرین زمان ذخیره‌شده پایان می‌دهد.", "ادامهٔ ثبت");
+                    bool resume = Dialogs.Confirm(this, "A timer was left running",
+                        "“Keep tracking” records all the time since it started.\n“Cancel” ends it at the last saved moment.", "Keep tracking");
                     awaitingResume = false;
                     if (!resume && State.Active != null) Mutate(() => Engine.Stop(State, Math.Max(State.Active.StartUtc, leftoverCheckpoint)));
                 }
@@ -151,7 +151,7 @@ namespace Rooznegar
             if (!preview && !awaitingResume && now - lastSave >= TimeSpan.TicksPerSecond * 15)
             {
                 try { Save(); }
-                catch (Exception e) { ticker.Stop(); Dialogs.Error(this, new IOException("ذخیرهٔ اطلاعات انجام نشد. مسیر داده‌ها و فضای دیسک را بررسی کنید.\n" + e.Message)); ticker.Start(); lastSave = Now; }
+                catch (Exception e) { ticker.Stop(); Dialogs.Error(this, new IOException("Saving failed. Check the data folder and free disk space.\n" + e.Message)); ticker.Start(); lastSave = Now; }
             }
         }
         private void Mutate(Action action)
@@ -179,7 +179,7 @@ namespace Rooznegar
         public void ResumeLast()
         {
             string id = Engine.LastProjectId(State);
-            if (id == null) { Navigate("dashboard"); ShowToast("ابتدا یک پروژه بسازید."); return; }
+            if (id == null) { Navigate("dashboard"); ShowToast("Create a project first."); return; }
             var last = State.Sessions.Where(a => a.ProjectId == id).OrderByDescending(a => a.EndUtc).FirstOrDefault();
             Start(id);
             if (State.Active != null && last != null && string.IsNullOrEmpty(State.Active.Note) && !string.IsNullOrEmpty(last.Note)) Mutate(() => State.Active.Note = last.Note);
@@ -203,7 +203,7 @@ namespace Rooznegar
                 if (d.DeleteRequested && p != null) { DeleteProject(p.Id); return; }
                 Mutate(() =>
                 {
-                    if (State.Projects.Any(a => a.Id != (p == null ? "" : p.Id) && string.Equals(a.Name, d.ProjectName, StringComparison.CurrentCultureIgnoreCase))) throw new ArgumentException("پروژه‌ای با این نام وجود دارد.");
+                    if (State.Projects.Any(a => a.Id != (p == null ? "" : p.Id) && string.Equals(a.Name, d.ProjectName, StringComparison.CurrentCultureIgnoreCase))) throw new ArgumentException("A project with this name already exists.");
                     if (p == null) State.Projects.Add(new Project { Id = Guid.NewGuid().ToString("N"), Name = d.ProjectName, Color = d.ProjectColor, WeeklyGoalMinutes = d.WeeklyGoal });
                     else
                     {
@@ -218,29 +218,34 @@ namespace Rooznegar
             var p = State.Projects.FirstOrDefault(a => a.Id == id); if (p == null) return;
             int count = State.Sessions.Count(a => a.ProjectId == id) + (State.Active != null && State.Active.ProjectId == id ? 1 : 0);
             long total = Snapshot.Get(Snap.TotalBy, id);
-            string detail = count == 0 ? "این پروژه هنوز فعالیتی ندارد." :
-                Dates.Digits(count.ToString()) + " فعالیت به مدت " + Dates.Human(total) + " همراه آن پاک می‌شود و از همهٔ گزارش‌ها کنار می‌رود.";
-            if (State.Active != null && State.Active.ProjectId == id) detail += "\nتایمر این پروژه هم اکنون روشن است و متوقف می‌شود.";
-            if (confirm && !Dialogs.Confirm(this, "حذف «" + p.Name + "»؟", detail + "\n\nاگر فقط می‌خواهید از فهرست پنهان شود، به‌جای حذف آن را بایگانی کنید.", "حذف پروژه", true)) return;
+            string detail = count == 0 ? "This project has no activities yet." :
+                DeleteDetail(count, total);
+            if (State.Active != null && State.Active.ProjectId == id) detail += "\nThis project's timer is running and will be stopped.";
+            if (confirm && !Dialogs.Confirm(this, "Delete “" + p.Name + "”?", detail + "\n\nIf you only want to hide it from the list, archive it instead.", "Delete project", true)) return;
             var copy = new Project { Id = p.Id, Name = p.Name, Color = p.Color, Archived = p.Archived, WeeklyGoalMinutes = p.WeeklyGoalMinutes };
             List<Session> removed = null;
             Mutate(() => removed = Engine.DeleteProject(State, id, Now));
             if (removed == null || State.Projects.Any(a => a.Id == id)) return;
-            ShowToast("پروژهٔ «" + copy.Name + "» حذف شد.", "بازگردانی", () =>
+            ShowToast("Project “" + copy.Name + "” deleted.", "Undo", () =>
             {
                 int skipped = 0;
                 Mutate(() => skipped = Engine.RestoreProject(State, copy, removed));
-                ShowToast(skipped == 0 ? "پروژه و همهٔ فعالیت‌هایش برگشت." : "پروژه برگشت؛ " + Dates.Digits(skipped.ToString()) + " فعالیت به دلیل هم‌پوشانی با ثبت‌های جدید برنگشت.");
+                ShowToast(skipped == 0 ? "The project and all its activities are back." : "The project is back; " + Activities(skipped) + " overlapping newer entries could not be restored.");
             });
+        }
+        private static string Activities(int n) { return n == 1 ? "1 activity" : n + " activities"; }
+        private static string DeleteDetail(int count, long total)
+        {
+            return Activities(count) + " totalling " + Dates.Human(total) + " will be deleted and removed from all reports.";
         }
         private Func<DateTime, bool> Marked { get { return day => Snap.Day(day) > 0; } }
         public void EditSession(Session existing)
         {
-            if (!State.Projects.Any(p => !p.Archived) && existing == null) { Dialogs.Message(this, "پروژه‌ای وجود ندارد", "ابتدا یک پروژه بسازید."); return; }
+            if (!State.Projects.Any(p => !p.Archived) && existing == null) { Dialogs.Message(this, "No projects yet", "Create a project first."); return; }
             using (var d = new SessionDialog(State, SelectedDay, existing, Zone, Marked)) if (d.ShowDialog(this) == DialogResult.OK)
             {
                 Mutate(() => Engine.SaveSession(State, d.Value, Now));
-                ShowToast(existing == null ? "فعالیت ثبت شد." : "فعالیت اصلاح شد.");
+                ShowToast(existing == null ? "Activity added." : "Activity updated.");
             }
         }
         public void DeleteSession(string id)
@@ -248,7 +253,7 @@ namespace Rooznegar
             var s = State.Sessions.FirstOrDefault(a => a.Id == id); if (s == null) return;
             var copy = new Session { Id = s.Id, ProjectId = s.ProjectId, StartUtc = s.StartUtc, EndUtc = s.EndUtc, Note = s.Note, Manual = s.Manual };
             Mutate(() => State.Sessions.Remove(s));
-            ShowToast("فعالیت حذف شد" + (Dates.Local(copy.StartUtc, Zone).Date != Dates.Local(copy.EndUtc, Zone).Date ? " (همهٔ روزهای آن)" : "") + ".", "بازگردانی",
+            ShowToast("Activity deleted" + (Dates.Local(copy.StartUtc, Zone).Date != Dates.Local(copy.EndUtc, Zone).Date ? " (all of its days)" : "") + ".", "Undo",
                 () => Mutate(() => Engine.SaveSession(State, copy, Now)));
         }
         public void SetDay(DateTime day) { SelectedDay = day.Date; RefreshAll(); }
@@ -276,26 +281,26 @@ namespace Rooznegar
         {
             using (var d = new SaveFileDialog { Filter = "CSV (*.csv)|*.csv", FileName = "Rooznegar-" + DateTime.Now.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture) + ".csv" })
                 if (d.ShowDialog(this) == DialogResult.OK)
-                    try { File.WriteAllText(d.FileName, Engine.Csv(State, Now, Zone, from, until), new UTF8Encoding(true)); ShowToast("گزارش CSV ذخیره شد؛ با Excel باز می‌شود.", "باز کردن", () => OpenPath(d.FileName)); }
+                    try { File.WriteAllText(d.FileName, Engine.Csv(State, Now, Zone, from, until), new UTF8Encoding(true)); ShowToast("CSV report saved; it opens in Excel.", "Open", () => OpenPath(d.FileName)); }
                     catch (Exception e) { Dialogs.Error(this, e); }
         }
         public void Backup()
         {
             using (var d = new SaveFileDialog { Filter = "Rooznegar backup (*.json)|*.json", FileName = "Rooznegar-Backup-" + DateTime.Now.ToString("yyyyMMdd-HHmm", System.Globalization.CultureInfo.InvariantCulture) + ".json" })
-                if (d.ShowDialog(this) == DialogResult.OK) try { Save(); File.Copy(store.FilePath, d.FileName, true); ShowToast("نسخهٔ پشتیبان ذخیره شد."); } catch (Exception e) { Dialogs.Error(this, e); }
+                if (d.ShowDialog(this) == DialogResult.OK) try { Save(); File.Copy(store.FilePath, d.FileName, true); ShowToast("Backup saved."); } catch (Exception e) { Dialogs.Error(this, e); }
         }
         public void ImportBackup()
         {
             using (var d = new OpenFileDialog { Filter = "Rooznegar backup (*.json)|*.json" })
                 if (d.ShowDialog(this) == DialogResult.OK) try
                 {
-                    if (new FileInfo(d.FileName).Length > 64 * 1024 * 1024) throw new ArgumentException("فایل پشتیبان بیش از حد بزرگ است.");
+                    if (new FileInfo(d.FileName).Length > 64 * 1024 * 1024) throw new ArgumentException("The backup file is too large.");
                     var incoming = Store.Parse(File.ReadAllText(d.FileName, Encoding.UTF8));
-                    if (!Dialogs.Confirm(this, "بازیابی پشتیبان", "اطلاعات این فایل جایگزین همهٔ پروژه‌ها و زمان‌های فعلی می‌شود.\nپیش از بازیابی، یک نسخهٔ کامل از اطلاعات فعلی نگه داشته می‌شود.\nتایمرِ فایل پشتیبان در آخرین زمان ذخیره‌شده‌اش متوقف می‌شود.", "بازیابی", true)) return;
+                    if (!Dialogs.Confirm(this, "Restore backup", "This file will replace all current projects and times.\nA full copy of your current data is kept before restoring.\nA timer running in the backup is stopped at its last saved time.", "Restore", true)) return;
                     Save(); File.Copy(store.FilePath, Path.Combine(store.DirectoryPath, "before-restore-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + ".json"), true);
                     if (incoming.Active != null) Engine.Stop(incoming, incoming.Active.LastSeenUtc);
                     Mutate(() => State = incoming);
-                    ApplyThemeSetting(); Navigate(PageKey); ShowToast("پشتیبان بازیابی شد.");
+                    ApplyThemeSetting(); Navigate(PageKey); ShowToast("Backup restored.");
                 } catch (Exception e) { Dialogs.Error(this, e); }
         }
         public void OpenDataFolder() { OpenPath(store.DirectoryPath); }
@@ -378,11 +383,11 @@ namespace Rooznegar
         private void UpdateHotkey()
         {
             if (!IsHandleCreated) return;
-            if (Ui.IsMono || preview) { HotkeyStatus = State.Settings.GlobalHotkey ? "فعال" : "خاموش"; return; }
+            if (Ui.IsMono || preview) { HotkeyStatus = State.Settings.GlobalHotkey ? "On" : "Off"; return; }
             if (hotkeyRegistered) { UnregisterHotKey(Handle, 1); hotkeyRegistered = false; }
-            if (!State.Settings.GlobalHotkey) { HotkeyStatus = "خاموش"; return; }
+            if (!State.Settings.GlobalHotkey) { HotkeyStatus = "Off"; return; }
             hotkeyRegistered = RegisterHotKey(Handle, 1, 0x0002 | 0x0001 | 0x4000, 0x20);
-            HotkeyStatus = hotkeyRegistered ? "فعال؛ از هر برنامه‌ای تایمر را روشن یا خاموش کنید" : "برنامهٔ دیگری از این کلیدها استفاده می‌کند";
+            HotkeyStatus = hotkeyRegistered ? "On: start or stop the timer from any app" : "Another app is already using these keys";
         }
         protected override void WndProc(ref Message m)
         {
@@ -390,7 +395,7 @@ namespace Rooznegar
             {
                 ToggleTimer();
                 var p = State.Active == null ? null : State.Projects.FirstOrDefault(a => a.Id == State.Active.ProjectId);
-                if (tray != null && !Visible) tray.ShowBalloonTip(1500, "روزنگار", p == null ? "ثبت زمان متوقف شد." : "ثبت «" + p.Name + "» شروع شد.", ToolTipIcon.None);
+                if (tray != null && !Visible) tray.ShowBalloonTip(1500, "Rooznegar", p == null ? "Tracking stopped." : "Started “" + p.Name + "”.", ToolTipIcon.None);
                 return;
             }
             base.WndProc(ref m);
@@ -437,7 +442,7 @@ namespace Rooznegar
                             bool keep = d.Choice == IdleChoice.DiscardContinue;
                             Mutate(() => Engine.DiscardIdle(State, from, Now, keep));
                             if (keep) FocusAnchor = Now;
-                            ShowToast(Dates.Human(now - from) + " از زمان دوری حذف شد.");
+                            ShowToast(Dates.Human(now - from) + " of idle time removed.");
                         }
                     }
                 }
@@ -452,8 +457,8 @@ namespace Rooznegar
             {
                 FocusAnchor = Now;
                 try { SystemSounds.Asterisk.Play(); } catch { }
-                if (tray != null) tray.ShowBalloonTip(6000, "وقت استراحت", Dates.Digits(focus.ToString()) + " دقیقه متمرکز کار کردید. " + Dates.Digits(State.Settings.BreakMinutes.ToString()) + " دقیقه استراحت کنید؛ چشم‌ها و بدن‌تان ممنون می‌شوند.", ToolTipIcon.Info);
-                ShowToast("وقت استراحت است — " + Dates.Digits(State.Settings.BreakMinutes.ToString()) + " دقیقه");
+                if (tray != null) tray.ShowBalloonTip(6000, "Time for a break", "You have focused for " + Dates.Count(focus, "minute") + ". Take a " + State.Settings.BreakMinutes + "-minute break; your eyes and body will thank you.", ToolTipIcon.Info);
+                ShowToast("Time for a break — " + Dates.Count(State.Settings.BreakMinutes, "minute"));
             }
         }
 
@@ -496,7 +501,7 @@ namespace Rooznegar
         // ------------------------------------------------------------------ tray
         private void BuildTray()
         {
-            tray = new NotifyIcon { Icon = Icon ?? SystemIcons.Application, Visible = !preview, Text = "روزنگار" };
+            tray = new NotifyIcon { Icon = Icon ?? SystemIcons.Application, Visible = !preview, Text = "Rooznegar" };
             tray.MouseClick += (s, e) => { if (e.Button == MouseButtons.Left) ShowFromTray(); };
             BuildTrayMenu(); UpdateTray();
         }
@@ -527,25 +532,25 @@ namespace Rooznegar
         private void BuildTrayMenu()
         {
             if (tray == null) return; var old = tray.ContextMenuStrip;
-            var menu = new ContextMenuStrip { RightToLeft = RightToLeft.Yes, Font = Fonts.Get(9.5f), Renderer = new MenuRenderer(), ShowImageMargin = true };
+            var menu = new ContextMenuStrip { RightToLeft = Ui.Direction, Font = Fonts.Get(9.5f), Renderer = new MenuRenderer(), ShowImageMargin = true };
             var active = State.Active == null ? null : State.Projects.FirstOrDefault(a => a.Id == State.Active.ProjectId);
-            var status = new ToolStripMenuItem(active == null ? "ثبت زمان متوقف است" : "در حال ثبت: " + active.Name) { Enabled = false };
+            var status = new ToolStripMenuItem(active == null ? "Not tracking" : "Tracking: " + active.Name) { Enabled = false };
             if (active != null) status.Image = Dot(active.Color);
             menu.Items.Add(status);
             menu.Items.Add(new ToolStripSeparator());
-            if (State.Active != null) menu.Items.Add("توقف ثبت زمان", null, (s, e) => Stop());
+            if (State.Active != null) menu.Items.Add("Stop tracking", null, (s, e) => Stop());
             else
             {
                 string last = Engine.LastProjectId(State); var lp = State.Projects.FirstOrDefault(p => p.Id == last);
-                if (lp != null) menu.Items.Add("ادامهٔ «" + lp.Name + "»", Dot(lp.Color), (s, e) => ResumeLast());
+                if (lp != null) menu.Items.Add("Continue “" + lp.Name + "”", Dot(lp.Color), (s, e) => ResumeLast());
             }
-            var projects = new ToolStripMenuItem("شروع / تعویض پروژه");
+            var projects = new ToolStripMenuItem("Start / switch project");
             foreach (var p in State.Projects.Where(a => !a.Archived)) { string id = p.Id; var item = projects.DropDownItems.Add(p.Name, Dot(p.Color), (s, e) => Start(id)); if (State.Active != null && State.Active.ProjectId == id) ((ToolStripMenuItem)item).Checked = true; }
             if (projects.DropDownItems.Count > 0) menu.Items.Add(projects);
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(State.Settings.MiniWidget ? "بستن تایمر شناور" : "نمایش تایمر شناور", null, (s, e) => ToggleMini());
-            menu.Items.Add("باز کردن روزنگار", null, (s, e) => ShowFromTray());
-            menu.Items.Add("خروج کامل", null, (s, e) => ExitApp());
+            menu.Items.Add(State.Settings.MiniWidget ? "Close floating timer" : "Show floating timer", null, (s, e) => ToggleMini());
+            menu.Items.Add("Open Rooznegar", null, (s, e) => ShowFromTray());
+            menu.Items.Add("Quit", null, (s, e) => ExitApp());
             tray.ContextMenuStrip = menu;
             if (old != null)
             {
@@ -559,7 +564,7 @@ namespace Rooznegar
             if (tray == null) return;
             var a = State.Active;
             var p = a == null ? null : State.Projects.FirstOrDefault(x => x.Id == a.ProjectId);
-            string text = p == null ? "روزنگار — ثبت زمان متوقف است" : "روزنگار: " + p.Name + " — " + Dates.Hm(Now - a.StartUtc);
+            string text = p == null ? "Rooznegar — not tracking" : "Rooznegar: " + p.Name + " — " + Dates.Hm(Now - a.StartUtc);
             tray.Text = text.Length > 63 ? text.Substring(0, 63) : text;
             string key = (p == null ? "idle" : p.Color) + Palette.Dark;
             if (key == trayIconKey) return;
@@ -603,7 +608,7 @@ namespace Rooznegar
         private void HideToTray()
         {
             Hide();
-            if (!hiddenNotice) { tray.ShowBalloonTip(3500, "روزنگار در حال اجراست", "تایمر ادامه دارد. برای باز کردن، روی نشان روزنگار کنار ساعت ویندوز کلیک کنید.", ToolTipIcon.Info); hiddenNotice = true; }
+            if (!hiddenNotice) { tray.ShowBalloonTip(3500, "Rooznegar is still running", "The timer keeps going. Click the Rooznegar icon next to the Windows clock to open it.", ToolTipIcon.Info); hiddenNotice = true; }
         }
         private void HandleClosing(object sender, FormClosingEventArgs e)
         {
@@ -614,7 +619,7 @@ namespace Rooznegar
         }
         public void ExitApp()
         {
-            if (State.Active != null && !Dialogs.Confirm(this, "خروج کامل", "تایمر فعال متوقف و برنامه کاملاً بسته شود؟", "توقف و خروج", true)) return;
+            if (State.Active != null && !Dialogs.Confirm(this, "Quit", "Stop the running timer and quit Rooznegar?", "Stop and quit", true)) return;
             exiting = true; if (mini != null) mini.Hide(); Close();
         }
         private void SessionEnding(object sender, SessionEndingEventArgs e)
@@ -662,7 +667,7 @@ namespace Rooznegar
             var shots = new List<KeyValuePair<string, Form>> {
                 new KeyValuePair<string, Form>("dialog-session", new SessionDialog(State, DateTime.Today, null, Zone, Marked)),
                 new KeyValuePair<string, Form>("dialog-project", new ProjectDialog(State.Projects[1])),
-                new KeyValuePair<string, Form>("dialog-delete", new AskDialog("حذف «" + State.Projects[1].Name + "»؟", Dates.Digits(State.Sessions.Count(a => a.ProjectId == State.Projects[1].Id).ToString()) + " فعالیت به مدت " + Dates.Human(Snapshot.Get(Snap.TotalBy, State.Projects[1].Id)) + " همراه آن پاک می‌شود و از همهٔ گزارش‌ها کنار می‌رود.\n\nاگر فقط می‌خواهید از فهرست پنهان شود، به‌جای حذف آن را بایگانی کنید.", "حذف پروژه", Kind.Danger, "انصراف")),
+                new KeyValuePair<string, Form>("dialog-delete", new AskDialog("Delete “" + State.Projects[1].Name + "”?", DeleteDetail(State.Sessions.Count(a => a.ProjectId == State.Projects[1].Id), Snapshot.Get(Snap.TotalBy, State.Projects[1].Id)) + "\n\nIf you only want to hide it from the list, archive it instead.", "Delete project", Kind.Danger, "Cancel")),
                 new KeyValuePair<string, Form>("dialog-range", new RangeDialog(RangeFrom, RangeEnd)),
                 new KeyValuePair<string, Form>("dialog-idle", new IdleDialog(State.Projects[0].Name, Now - TimeSpan.TicksPerMinute * 34, Now, Zone)) };
             foreach (var s in shots)
@@ -672,18 +677,18 @@ namespace Rooznegar
                 Console.WriteLine(s.Key + " ok");
             }
             ShowMini(true); mini.Location = new Point(40, 40); Shot(mini, Path.Combine(directory, "mini.png")); ShowMini(false);
-            toast.Show("فعالیت حذف شد.", "بازگردانی", null); Shot(this, Path.Combine(directory, "toast.png"));
+            toast.Show("Activity deleted.", "Undo", null); Shot(this, Path.Combine(directory, "toast.png"));
             var saved = State; State = AppState.Fresh(); toast.Visible = false;
             foreach (string key in new[] { "dashboard", "timesheet", "reports" }) { Navigate(key); RefreshAll(); Shot(this, Path.Combine(directory, "first-run-" + key + ".png")); }
             State = saved; Navigate("dashboard"); RefreshAll();
         }
         /// <summary>
-        /// Headless stress test used by «--smoke»: drives every page, state and dialog, sweeps the mouse over
+        /// Headless stress test used by "--smoke": drives every page, state and dialog, sweeps the mouse over
         /// every surface to exercise hover/tooltip painting, and fails if anything throws or is logged.
         /// </summary>
         internal void Smoke()
         {
-            Action<string> step = name => { Application.DoEvents(); if (ErrorLog.Count > 0) throw new Exception("error after «" + name + "»: " + ErrorLog.Last); Console.WriteLine("  ok  " + name); };
+            Action<string> step = name => { Application.DoEvents(); if (ErrorLog.Count > 0) throw new Exception("error after '" + name + "': " + ErrorLog.Last); Console.WriteLine("  ok  " + name); };
             var pages = new[] { "dashboard", "timesheet", "reports", "settings" };
             Action sweep = () =>
             {
@@ -760,7 +765,7 @@ namespace Rooznegar
             // dashboard states: archived view, search with no hit, archive/unarchive
             Navigate("dashboard");
             ShowArchived = true; RefreshAll(); Refresh(); ShowArchived = false;
-            Search = "پروژه‌ای که نیست"; RefreshAll(); Refresh(); Search = "";
+            Search = "A project that does not exist"; RefreshAll(); Refresh(); Search = "";
             var archived = State.Projects.First(p => !p.Archived);
             Mutate(() => archived.Archived = true); Refresh(); Mutate(() => archived.Archived = false);
             step("dashboard states");
@@ -788,15 +793,15 @@ namespace Rooznegar
             step("no projects at all");
 
             // every dialog: construct, show, paint, close (light and dark)
-            State.Projects.Add(new Project { Id = "smoke", Name = "پروژهٔ آزمایشی", Color = "#3B6FD8" }); Save();
+            State.Projects.Add(new Project { Id = "smoke", Name = "Smoke test project", Color = "#3B6FD8" }); Save();
             foreach (string theme in new[] { "light", "dark" })
             {
                 SetTheme(theme);
                 var dialogs = new Form[] {
                     new SessionDialog(State, DateTime.Today, null, Zone, Marked), new SessionDialog(State, DateTime.Today.AddDays(-2), null, Zone, Marked),
                     new ProjectDialog(), new ProjectDialog(State.Projects[0]), new DateDialog(DateTime.Today), new RangeDialog(DateTime.Today.AddDays(-6), DateTime.Today.AddDays(1)),
-                    new NoteDialog("یادداشت"), new IdleDialog("پروژه", Now - TimeSpan.TicksPerMinute * 30, Now, Zone),
-                    new AskDialog("پرسش", "متن نسبتاً بلندی برای آزمایش شکستن خط در پنجرهٔ پرسش که باید به چند خط تقسیم شود.", "بله", Kind.Danger, "انصراف") };
+                    new NoteDialog("Note"), new IdleDialog("Project", Now - TimeSpan.TicksPerMinute * 30, Now, Zone),
+                    new AskDialog("Question", "A fairly long message to check that text wraps onto several lines in the question dialog.", "Yes", Kind.Danger, "Cancel") };
                 foreach (var d in dialogs)
                 {
                     d.StartPosition = FormStartPosition.Manual; d.Location = new Point(20, 20); d.Show(this); d.Refresh();
@@ -806,7 +811,7 @@ namespace Rooznegar
             }
             SetTheme("light");
             step("all dialogs");
-            toast.Show("آزمایش اعلان", "بازگردانی", () => { }); Refresh();
+            toast.Show("Test notification", "Undo", () => { }); Refresh();
             step("toast");
             if (ErrorLog.Count > 0) throw new Exception(ErrorLog.Last);
         }

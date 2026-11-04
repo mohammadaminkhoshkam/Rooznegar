@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rooznegar Guide</title>
+<style>
+@font-face{font-family:Inter;src:url(fonts/Inter-Regular.ttf);font-weight:400}
+@font-face{font-family:Inter;src:url(fonts/Inter-Medium.ttf);font-weight:500}
+@font-face{font-family:Inter;src:url(fonts/Inter-Bold.ttf);font-weight:700}
+@font-face{font-family:Inter;src:url(fonts/Inter-ExtraBold.ttf);font-weight:800}
+:root{--bg:#f4f7f6;--card:#fff;--ink:#152b28;--ink2:#536966;--line:#e2eae7;--accent:#0f766e;--soft:#e0f2ee}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1413;--card:#151d1c;--ink:#e7efed;--ink2:#a3b5b1;--line:#24312f;--accent:#2bb5a4;--soft:#16332f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",sans-serif;line-height:1.7;font-size:16px}
+main{max-width:860px;margin:0 auto;padding:40px 20px 60px}
+.badge{display:inline-block;background:var(--soft);color:var(--accent);border-radius:999px;padding:2px 14px;font-weight:500;font-size:14px}
+h1{font-size:40px;font-weight:800;margin:10px 0 0}
+.intro{color:var(--ink2);font-size:18px;margin-top:4px}
+h2{font-size:22px;margin:40px 0 10px;font-weight:700}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:8px 24px 14px;margin-top:14px}
+table{width:100%;border-collapse:collapse}
+td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+th{color:var(--ink2);font-weight:500;font-size:14px}
+tr:last-child td{border-bottom:0}
+kbd{font-family:Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:13px;display:inline-block}
+code{font-family:Consolas,monospace;font-size:14px}
+.note{background:var(--soft);border-radius:12px;padding:10px 16px;margin:14px 0}
+footer{color:var(--ink2);text-align:center;margin-top:40px;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<span class="badge">Version 2.0.0 • Windows 10 and 11</span>
+<h1>Rooznegar</h1>
+<p class="intro">Project time tracking for Windows: see where your time really goes.</p>
+
+<h2>Quick start</h2>
+<section>
+<ol>
+<li>Run <code>Rooznegar-Setup-2.0.0.exe</code>. It installs for the current user only and does not need administrator rights.</li>
+<li>On the <b>Dashboard</b>, click the play button on a project card, or one of the quick-start buttons at the top, to start tracking.</li>
+<li>To switch, start another project. The previous activity ends at that exact moment, so not a second is lost.</li>
+<li>To finish, click <b>Stop</b> or press <kbd>Ctrl+Alt+Space</kbd> from anywhere in Windows.</li>
+</ol>
+</section>
+
+<h2>Features</h2>
+<section>
+<table>
+<tr><th>Feature</th><th>Details</th></tr>
+<tr><td>Custom-drawn interface</td><td>Every control is painted by the app, and the Inter font is embedded, so nothing extra needs installing. The layout scales correctly at 125%, 150% and higher display scaling.</td></tr>
+<tr><td>Dark theme</td><td>Light, dark, or follow the Windows setting. Shortcut: <kbd>Ctrl+T</kbd></td></tr>
+<tr><td>Floating timer</td><td>A small always-on-top window with the running time and a start/stop button. Drag it anywhere; double-click it to open the main window.</td></tr>
+<tr><td>Global shortcut</td><td><kbd>Ctrl+Alt+Space</kbd> stops the timer or restarts the last project, even when the app is hidden.</td></tr>
+<tr><td>Idle detection</td><td>If the timer is running and there is no keyboard or mouse input for a while (15 minutes by default), Rooznegar asks when you return: keep the time, discard it and continue, or discard it and stop.</td></tr>
+<tr><td>Break reminder (Pomodoro)</td><td>Reminds you to take a break after each focus period (for example 25 or 50 minutes); progress shows on the timer card.</td></tr>
+<tr><td>Daily goal and streaks</td><td>A progress ring for today's goal and a count of consecutive days that met it.</td></tr>
+<tr><td>Weekly project goals</td><td>Give any project a weekly target in hours; its progress bar appears on the project card.</td></tr>
+<tr><td>Deleting projects</td><td>Delete a project together with its activities. Rooznegar shows how much time will be removed and offers <b>Undo</b>.</td></tr>
+<tr><td>Timesheet</td><td>A week strip with daily totals, a 24-hour timeline, one-click continue for any activity, and delete with Undo.</td></tr>
+<tr><td>Visual reports</td><td>A stacked bar chart (daily, weekly or monthly depending on the range), a donut chart of project share, an activity heatmap of recent months, the daily average and the best day.</td></tr>
+<tr><td>Calendar date picker</td><td>Pick days from a calendar instead of typing dates; days with tracked time are marked with a dot.</td></tr>
+</table>
+</section>
+
+<h2>How the timer behaves</h2>
+<section>
+<table>
+<tr><th>Situation</th><th>What happens</th></tr>
+<tr><td>Starting another project</td><td>The current activity ends and the new one starts at exactly the same moment.</td></tr>
+<tr><td>Sleep / hibernate</td><td>By default the whole period counts toward the running project. To be asked instead, turn on <b>Ask about sleep time</b> in Settings.</td></tr>
+<tr><td>Away from the PC (awake)</td><td>Idle detection asks you; nothing is removed without your answer.</td></tr>
+<tr><td>Crossing midnight</td><td>Tracking continues and each part is filed under its own day; the timesheet labels it <b>Multi-day</b>.</td></tr>
+<tr><td>Closing the window</td><td>Rooznegar stays in the notification area and keeps tracking. While tracking, its icon shows a dot in the project's color.</td></tr>
+<tr><td>Quit / normal Windows shutdown</td><td>The timer ends at that moment and the data is saved.</td></tr>
+<tr><td>Power loss / crash</td><td>On the next start you can keep tracking (counting the time in between) or end the activity at the last saved moment.</td></tr>
+</table>
+</section>
+
+<h2>Manual entries and edits</h2>
+<section>
+<p>On the timesheet, click <b>Manual entry</b> (<kbd>Ctrl+M</kbd>). Choose a project, pick the dates from the calendar and type the times; <code>9:30</code>, <code>09:30:05</code> and <code>930</code> are all accepted. An end time earlier than the start time means the activity crossed midnight. The duration is shown before you save.</p>
+<p>To edit an activity, double-click its row or click the pencil button. The range must be in the past and must not overlap another activity or the running timer. Deleting a multi-day activity removes all of its parts, and <b>Undo</b> brings it back for a few seconds.</p>
+</section>
+
+<h2>Archiving or deleting a project</h2>
+<section>
+<p>Click the pencil on a project card (or double-click the card). <b>Archive</b> hides the project from the active list while all of its records stay in the reports. <b>Delete project</b> removes the project and all of its activities; before deleting, Rooznegar shows how many activities and how much time will be removed, and stops the timer first if that project is running.</p>
+<div class="note">Deleted something by mistake? Click <b>Undo</b> at the bottom of the window within a few seconds. The daily backups in the data folder are another way back.</div>
+</section>
+
+<h2>Keyboard shortcuts</h2>
+<section>
+<table>
+<tr><td><kbd>Ctrl+Alt+Space</kbd></td><td>Start/stop from anywhere in Windows</td></tr>
+<tr><td><kbd>Ctrl+1</kbd> to <kbd>Ctrl+4</kbd></td><td>Dashboard, Timesheet, Reports, Settings</td></tr>
+<tr><td><kbd>Ctrl+N</kbd></td><td>New project</td></tr>
+<tr><td><kbd>Ctrl+M</kbd></td><td>Add time manually</td></tr>
+<tr><td><kbd>Ctrl+F</kbd></td><td>Search projects</td></tr>
+<tr><td><kbd>Ctrl+T</kbd></td><td>Toggle theme</td></tr>
+</table>
+</section>
+
+<h2>Reports, export and backup</h2>
+<section>
+<p>On <b>Reports</b>, choose a range: this week (from Monday), last week, this month, last month, this year, all time, or a custom range. Hover over bars, donut slices or heatmap cells to see details.</p>
+<p>The CSV export opens in Excel. It is UTF-8 encoded and has the columns Date, Project, Start, End, Duration, Duration (seconds), Note and Type.</p>
+<p>Rooznegar saves every 15 seconds and keeps the previous version (<code>.bak</code>) plus up to 30 daily backups. In Settings you can create a backup file or restore one; a copy of your current data is saved before restoring. Data location:</p>
+<p><code>%LOCALAPPDATA%\Rooznegar\data.json</code></p>
+<div class="note">Your data stays on this PC. Uninstalling Rooznegar does not delete it.</div>
+</section>
+
+<h2>Accuracy</h2>
+<section>
+<p>Time is calculated from differences between UTC timestamps, not by counting timer ticks; days follow the Windows time zone, so the Windows clock and time zone must be correct. The time logic, midnight splitting, manual entries, idle-time removal, streaks, project delete and undo, and saving and recovery are covered by 50 automated tests. Unexpected errors are written to <code>errors.log</code> in the data folder instead of closing the app.</p>
+</section>
+
+<footer>Rooznegar • Version 2.0.0 • Inter font by Rasmus Andersson, SIL Open Font License</footer>
+</main>
+</body>
+</html>

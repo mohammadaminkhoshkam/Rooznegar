@@ -23,7 +23,7 @@ namespace Rooznegar
             canvas.Painter = PaintWidget;
             canvas.MouseDown += (s, e) =>
             {
-                if (e.Button != MouseButtons.Left || e.X < Ui.S(52)) return;
+                if (e.Button != MouseButtons.Left || canvas.ToLogical(e.Location).X < Ui.S(52)) return;
                 if (!Ui.IsMono) { ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); app.SaveMiniPosition(Location); }
                 else { dragging = true; dragFrom = e.Location; }
             };
@@ -58,8 +58,8 @@ namespace Rooznegar
             bool hot = c.Hot("b");
             Ui.Fill(g, btn, a != null ? (hot ? Palette.Mix(Palette.Danger, Color.Black, 0.1) : Palette.Danger) : (hot ? Palette.AccentHover : Palette.Accent), btn.Height / 2);
             Icons.Draw(g, a != null ? Glyph.Stop : Glyph.Play, Rectangle.Inflate(btn, -Ui.S(10), -Ui.S(10)), a != null ? Color.White : Palette.AccentInk);
-            c.AddHit(btn, "b", app.ToggleTimer, a != null ? "توقف" : "ادامهٔ آخرین پروژه");
-            string name = p != null ? p.Name : "تایمر خاموش است";
+            c.AddHit(btn, "b", app.ToggleTimer, a != null ? "Stop" : "Resume last project");
+            string name = p != null ? p.Name : "Timer is off";
             Ui.Text(g, name, Fonts.Get(9f, Weight.Medium), p != null ? Palette.Ink2 : Palette.Ink3, new Rectangle(btn.Right + Ui.S(110), 0, c.Width - btn.Right - Ui.S(130), c.Height));
             Ui.Text(g, a != null ? Dates.Duration(app.Snap.Now - a.StartUtc) : Dates.Hm(app.Snap.TodayTotal), Fonts.Get(13f, Weight.Bold), a != null ? pc : Palette.Ink2, new Rectangle(btn.Right + Ui.S(8), 0, Ui.S(104), c.Height), Align.Left, false, true);
         }

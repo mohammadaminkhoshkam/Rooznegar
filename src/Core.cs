@@ -73,9 +73,9 @@ namespace Rooznegar
         public static AppState Sample()
         {
             var s = new AppState();
-            s.Projects.Add(new Project { Id = Guid.NewGuid().ToString("N"), Name = "یادگیری زبان", Color = "#0F766E" });
-            s.Projects.Add(new Project { Id = Guid.NewGuid().ToString("N"), Name = "پژوهش و توسعه", Color = "#3B6FD8" });
-            s.Projects.Add(new Project { Id = Guid.NewGuid().ToString("N"), Name = "کارهای شخصی", Color = "#E07B39" });
+            s.Projects.Add(new Project { Id = Guid.NewGuid().ToString("N"), Name = "Language learning", Color = "#0F766E" });
+            s.Projects.Add(new Project { Id = Guid.NewGuid().ToString("N"), Name = "Research & development", Color = "#3B6FD8" });
+            s.Projects.Add(new Project { Id = Guid.NewGuid().ToString("N"), Name = "Personal", Color = "#E07B39" });
             return s;
         }
     }
@@ -93,89 +93,87 @@ namespace Rooznegar
     }
     public static class Dates
     {
-        public static readonly PersianCalendar Persian = new PersianCalendar();
-        public static readonly string[] Months = { "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند" };
-        public static readonly string[] Days = { "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه" };
-        public static string Digits(string value)
-        {
-            if (value == null) return "";
-            var b = new StringBuilder(value);
-            for (int i = 0; i < b.Length; i++) if (b[i] >= '0' && b[i] <= '9') b[i] = (char)('۰' + b[i] - '0');
-            return b.ToString();
-        }
+        public static readonly Calendar Cal = new GregorianCalendar();
+        public static readonly string[] Months = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+        public static readonly string[] ShortMonths = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        /// <summary>Indexed by <see cref="DayOfWeek"/>.</summary>
+        public static readonly string[] Days = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+        public static readonly string[] DayNames = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+        public static bool Weekend(DateTime day) { return day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday; }
+        /// <summary>ISO date, e.g. 2026-11-04.</summary>
         public static string Short(DateTime day)
         {
-            return Digits(string.Format(CultureInfo.InvariantCulture, "{0:0000}/{1:00}/{2:00}", Persian.GetYear(day), Persian.GetMonth(day), Persian.GetDayOfMonth(day)));
+            return day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         }
+        /// <summary>e.g. "Wednesday, November 4, 2026".</summary>
         public static string Long(DateTime day)
         {
-            return Days[(int)day.DayOfWeek] + "، " + Digits(Persian.GetDayOfMonth(day).ToString()) + " " + Months[Persian.GetMonth(day) - 1] + " " + Digits(Persian.GetYear(day).ToString());
+            return DayNames[(int)day.DayOfWeek] + ", " + Months[day.Month - 1] + " " + day.Day.ToString(CultureInfo.InvariantCulture) + ", " + day.Year.ToString(CultureInfo.InvariantCulture);
         }
         public static string Duration(long ticks)
         {
             long total = Math.Max(0, ticks) / TimeSpan.TicksPerSecond;
-            return Digits(string.Format(CultureInfo.InvariantCulture, "{0:00}:{1:00}:{2:00}", total / 3600, total / 60 % 60, total % 60));
+            return string.Format(CultureInfo.InvariantCulture, "{0:00}:{1:00}:{2:00}", total / 3600, total / 60 % 60, total % 60);
         }
-        /// <summary>Compact h:mm, e.g. ۴:۰۷ (hours are not wrapped at 24).</summary>
+        /// <summary>Compact h:mm, e.g. 4:07 (hours are not wrapped at 24).</summary>
         public static string Hm(long ticks)
         {
             long minutes = Math.Max(0, ticks) / TimeSpan.TicksPerMinute;
-            return Digits(string.Format(CultureInfo.InvariantCulture, "{0}:{1:00}", minutes / 60, minutes % 60));
+            return string.Format(CultureInfo.InvariantCulture, "{0}:{1:00}", minutes / 60, minutes % 60);
         }
-        /// <summary>Readable Persian duration, e.g. «۴ ساعت و ۷ دقیقه».</summary>
+        /// <summary>Readable duration, e.g. "4 hours 7 minutes".</summary>
         public static string Human(long ticks)
         {
             long minutes = Math.Max(0, ticks) / TimeSpan.TicksPerMinute, h = minutes / 60, m = minutes % 60;
-            if (h == 0) return Digits(m.ToString(CultureInfo.InvariantCulture)) + " دقیقه";
-            if (m == 0) return Digits(h.ToString(CultureInfo.InvariantCulture)) + " ساعت";
-            return Digits(h.ToString(CultureInfo.InvariantCulture)) + " ساعت و " + Digits(m.ToString(CultureInfo.InvariantCulture)) + " دقیقه";
+            if (h == 0) return Count(m, "minute");
+            if (m == 0) return Count(h, "hour");
+            return Count(h, "hour") + " " + Count(m, "minute");
+        }
+        /// <summary>"1 day", "3 days".</summary>
+        public static string Count(long n, string noun)
+        {
+            return n.ToString(CultureInfo.InvariantCulture) + " " + noun + (n == 1 ? "" : "s");
         }
         public static string Clock(long utcTicks, TimeZoneInfo zone)
         {
-            return Digits(Local(utcTicks, zone).ToString("HH:mm", CultureInfo.InvariantCulture));
+            return Local(utcTicks, zone).ToString("HH:mm", CultureInfo.InvariantCulture);
         }
+        /// <summary>e.g. "Nov 4".</summary>
         public static string DayMonth(DateTime day)
         {
-            return Digits(Persian.GetDayOfMonth(day).ToString(CultureInfo.InvariantCulture)) + " " + Months[Persian.GetMonth(day) - 1];
+            return ShortMonths[day.Month - 1] + " " + day.Day.ToString(CultureInfo.InvariantCulture);
         }
         public static string MonthYear(DateTime day)
         {
-            return Months[Persian.GetMonth(day) - 1] + " " + Digits(Persian.GetYear(day).ToString(CultureInfo.InvariantCulture));
+            return Months[day.Month - 1] + " " + day.Year.ToString(CultureInfo.InvariantCulture);
         }
-        public static DateTime YearStart(DateTime day) { return Persian.ToDateTime(Persian.GetYear(day), 1, 1, 0, 0, 0, 0); }
-        /// <summary>Parses «9:30», «۰۹:۳۰:۰۵» or «930» into a time of day.</summary>
+        public static DateTime YearStart(DateTime day) { return new DateTime(day.Year, 1, 1); }
+        /// <summary>Parses "9:30", "09:30:05", "9.30" or "930" into a time of day.</summary>
         public static TimeSpan ParseTime(string text)
         {
-            var b = new StringBuilder();
-            foreach (char c in (text ?? "").Trim())
-            {
-                if (c >= '۰' && c <= '۹') b.Append((char)('0' + c - '۰'));
-                else if (c >= '٠' && c <= '٩') b.Append((char)('0' + c - '٠'));
-                else if (c == '.' || c == '٫' || c == '/') b.Append(':');
-                else b.Append(c);
-            }
-            string t = b.ToString();
+            string t = (text ?? "").Trim().Replace('.', ':').Replace('/', ':');
             if (t.IndexOf(':') < 0 && t.Length >= 3 && t.Length <= 4 && t.All(char.IsDigit)) t = t.Substring(0, t.Length - 2) + ":" + t.Substring(t.Length - 2);
             if (t.IndexOf(':') < 0 && t.Length >= 1 && t.Length <= 2 && t.All(char.IsDigit)) t = t + ":00";
             var parts = t.Split(':');
             int h, m, sec = 0;
             if (parts.Length < 2 || parts.Length > 3 || !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out h) || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out m)
                 || (parts.Length == 3 && !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out sec)) || h > 23 || m > 59 || sec > 59)
-                throw new ArgumentException("ساعت را به شکل ۰۹:۳۰ وارد کنید.");
+                throw new ArgumentException("Enter the time as 09:30.");
             return new TimeSpan(h, m, sec);
         }
-        /// <summary>Culture-independent number with Persian digits and the Persian decimal separator.</summary>
+        /// <summary>Culture-independent number, e.g. Number(12.5, "0.#") = "12.5".</summary>
         public static string Number(double value, string format)
         {
-            return Digits(value.ToString(format, CultureInfo.InvariantCulture).Replace('.', '٫'));
+            return value.ToString(format, CultureInfo.InvariantCulture);
         }
         public static string DurationCsv(long ticks)
         {
             long total = Math.Max(0, ticks) / TimeSpan.TicksPerSecond;
             return string.Format(CultureInfo.InvariantCulture, "{0:00}:{1:00}:{2:00}", total / 3600, total / 60 % 60, total % 60);
         }
-        public static DateTime WeekStart(DateTime day) { return day.Date.AddDays(-(((int)day.DayOfWeek + 1) % 7)); }
-        public static DateTime MonthStart(DateTime day) { return day.Date.AddDays(1 - Persian.GetDayOfMonth(day)); }
+        /// <summary>Weeks start on Monday.</summary>
+        public static DateTime WeekStart(DateTime day) { return day.Date.AddDays(-(((int)day.DayOfWeek + 6) % 7)); }
+        public static DateTime MonthStart(DateTime day) { return day.Date.AddDays(1 - day.Day); }
         public static DateTime Local(long ticks, TimeZoneInfo zone)
         {
             return TimeZoneInfo.ConvertTimeFromUtc(new DateTime(ticks, DateTimeKind.Utc), zone);
@@ -183,7 +181,7 @@ namespace Rooznegar
         public static long Utc(DateTime local, TimeZoneInfo zone)
         {
             local = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
-            if (zone.IsInvalidTime(local)) throw new ArgumentException("این ساعت در منطقهٔ زمانی سیستم معتبر نیست.");
+            if (zone.IsInvalidTime(local)) throw new ArgumentException("This time does not exist in the system time zone.");
             return TimeZoneInfo.ConvertTimeToUtc(local, zone).Ticks;
         }
         // Midnight may fall in a DST gap; move to the first valid instant of that date.
@@ -198,7 +196,7 @@ namespace Rooznegar
     {
         public static void Start(AppState s, string projectId, long now)
         {
-            if (!s.Projects.Any(p => p.Id == projectId && !p.Archived)) throw new ArgumentException("پروژه یافت نشد.");
+            if (!s.Projects.Any(p => p.Id == projectId && !p.Archived)) throw new ArgumentException("Project not found.");
             if (s.Active != null && s.Active.ProjectId == projectId) return;
             Stop(s, now);
             s.Active = new RunningSession { ProjectId = projectId, StartUtc = now, LastSeenUtc = now, Note = "" };
@@ -206,7 +204,7 @@ namespace Rooznegar
         public static void Stop(AppState s, long now)
         {
             if (s.Active == null) return;
-            if (now < s.Active.StartUtc) throw new InvalidOperationException("ساعت سیستم به عقب تغییر کرده است. ابتدا ساعت را اصلاح کنید.");
+            if (now < s.Active.StartUtc) throw new InvalidOperationException("The system clock moved backwards. Correct the clock first.");
             if (now > s.Active.StartUtc)
                 s.Sessions.Add(new Session { Id = Guid.NewGuid().ToString("N"), ProjectId = s.Active.ProjectId,
                     StartUtc = s.Active.StartUtc, EndUtc = now, Note = s.Active.Note ?? "", Manual = false });
@@ -220,7 +218,7 @@ namespace Rooznegar
         public static void DiscardIdle(AppState s, long idleStart, long now, bool keepRunning)
         {
             if (s.Active == null) return;
-            if (now < s.Active.StartUtc) throw new InvalidOperationException("ساعت سیستم به عقب تغییر کرده است. ابتدا ساعت را اصلاح کنید.");
+            if (now < s.Active.StartUtc) throw new InvalidOperationException("The system clock moved backwards. Correct the clock first.");
             idleStart = Math.Min(now, Math.Max(idleStart, s.Active.StartUtc));
             string project = s.Active.ProjectId, note = s.Active.Note;
             Stop(s, idleStart);
@@ -235,7 +233,7 @@ namespace Rooznegar
         public static List<Session> DeleteProject(AppState s, string projectId, long now)
         {
             var project = s.Projects.FirstOrDefault(p => p.Id == projectId);
-            if (project == null) throw new ArgumentException("پروژه یافت نشد.");
+            if (project == null) throw new ArgumentException("Project not found.");
             if (s.Active != null && s.Active.ProjectId == projectId) Stop(s, now);
             var removed = s.Sessions.Where(a => a.ProjectId == projectId).ToList();
             s.Sessions.RemoveAll(a => a.ProjectId == projectId);
@@ -248,7 +246,7 @@ namespace Rooznegar
         /// </summary>
         public static int RestoreProject(AppState s, Project project, IEnumerable<Session> sessions)
         {
-            if (s.Projects.Any(p => p.Id == project.Id)) throw new ArgumentException("این پروژه از قبل وجود دارد.");
+            if (s.Projects.Any(p => p.Id == project.Id)) throw new ArgumentException("This project already exists.");
             string name = project.Name;
             for (int i = 2; s.Projects.Any(p => string.Equals(p.Name, name, StringComparison.CurrentCultureIgnoreCase)); i++) name = project.Name + " (" + i + ")";
             if (name.Length > 100) name = name.Substring(0, 100);
@@ -301,7 +299,7 @@ namespace Rooznegar
                 DateTime day = Dates.Local(start, zone).Date;
                 long next = Dates.Boundary(day.AddDays(1), zone);
                 long until = Math.Min(end, next);
-                if (until <= start) throw new InvalidOperationException("مرز روز قابل محاسبه نیست.");
+                if (until <= start) throw new InvalidOperationException("The day boundary could not be calculated.");
                 yield return new TimeSlice { SessionId = id, ProjectId = project, LocalDay = day, StartUtc = start, EndUtc = until, Note = note ?? "", Active = active, Manual = manual };
                 start = until;
             }
@@ -312,27 +310,27 @@ namespace Rooznegar
         }
         public static void SaveSession(AppState s, Session value, long now)
         {
-            if (!s.Projects.Any(p => p.Id == value.ProjectId)) throw new ArgumentException("پروژه یافت نشد.");
-            if (value.StartUtc <= 0 || value.EndUtc <= value.StartUtc) throw new ArgumentException("زمان پایان باید بعد از شروع باشد.");
-            if (value.EndUtc > now) throw new ArgumentException("ثبت زمان در آینده مجاز نیست.");
+            if (!s.Projects.Any(p => p.Id == value.ProjectId)) throw new ArgumentException("Project not found.");
+            if (value.StartUtc <= 0 || value.EndUtc <= value.StartUtc) throw new ArgumentException("The end time must be after the start.");
+            if (value.EndUtc > now) throw new ArgumentException("Time cannot be recorded in the future.");
             if (s.Sessions.Any(a => a.Id != value.Id && value.StartUtc < a.EndUtc && value.EndUtc > a.StartUtc))
-                throw new ArgumentException("این بازه با یک فعالیت ثبت‌شده هم‌پوشانی دارد.");
+                throw new ArgumentException("This range overlaps a recorded activity.");
             if (s.Active != null && value.EndUtc > s.Active.StartUtc && value.StartUtc <= now)
-                throw new ArgumentException("این بازه با تایمر فعال هم‌پوشانی دارد؛ ابتدا تایمر را متوقف کنید.");
+                throw new ArgumentException("This range overlaps the running timer; stop the timer first.");
             if (string.IsNullOrEmpty(value.Id)) value.Id = Guid.NewGuid().ToString("N");
             var index = s.Sessions.FindIndex(a => a.Id == value.Id);
             if (index >= 0) s.Sessions[index] = value; else s.Sessions.Add(value);
         }
         public static string Csv(AppState s, long now, TimeZoneInfo zone, DateTime from, DateTime until)
         {
-            var b = new StringBuilder("تاریخ شمسی,پروژه,شروع,پایان,مدت,مدت به ثانیه,یادداشت,نوع\r\n");
+            var b = new StringBuilder("Date,Project,Start,End,Duration,Duration (seconds),Note,Type\r\n");
             foreach (var t in Slices(s, now, zone).Where(t => t.LocalDay >= from.Date && t.LocalDay < until.Date).OrderBy(t => t.StartUtc))
             {
                 var p = s.Projects.First(a => a.Id == t.ProjectId);
                 var fields = new[] { Dates.Short(t.LocalDay), p.Name, Dates.Local(t.StartUtc, zone).ToString("HH:mm:ss", CultureInfo.InvariantCulture),
                     Dates.Local(t.EndUtc, zone).ToString("HH:mm:ss", CultureInfo.InvariantCulture), Dates.DurationCsv(t.Duration),
                     (t.Duration / TimeSpan.TicksPerSecond).ToString(CultureInfo.InvariantCulture), t.Note,
-                    t.Active ? "در حال ثبت" : t.Manual ? "ثبت دستی" : "تایمر" };
+                    t.Active ? "Tracking" : t.Manual ? "Manual entry" : "Timer" };
                 b.AppendLine(string.Join(",", fields.Select(CsvCell)));
             }
             return b.ToString();
@@ -367,23 +365,23 @@ namespace Rooznegar
         public static void Validate(AppState s)
         {
             if (s == null || s.Schema != 1 || s.Projects == null || s.Sessions == null || s.Settings == null)
-                throw new InvalidDataException("ساختار فایل داده معتبر نیست.");
-            if (s.Projects.Count > 10000 || s.Sessions.Count > 1000000) throw new InvalidDataException("فایل بیش از حد بزرگ است.");
+                throw new InvalidDataException("The data file structure is invalid.");
+            if (s.Projects.Count > 10000 || s.Sessions.Count > 1000000) throw new InvalidDataException("The file is too large.");
             var ids = new HashSet<string>();
             foreach (var p in s.Projects)
             {
                 if (p == null || string.IsNullOrEmpty(p.Id) || !ids.Add(p.Id) || string.IsNullOrWhiteSpace(p.Name) || p.Name.Length > 100)
-                    throw new InvalidDataException("اطلاعات پروژه معتبر نیست.");
+                    throw new InvalidDataException("Invalid project data.");
                 if (p.Color == null || !System.Text.RegularExpressions.Regex.IsMatch(p.Color, "^#[0-9a-fA-F]{6}$")) p.Color = "#0F766E";
             }
             var sessionIds = new HashSet<string>();
             foreach (var a in s.Sessions)
                 if (a == null || string.IsNullOrEmpty(a.Id) || !sessionIds.Add(a.Id) || !ids.Contains(a.ProjectId) || a.StartUtc < 1 || a.EndUtc <= a.StartUtc || a.EndUtc >= DateTime.MaxValue.Ticks)
-                    throw new InvalidDataException("اطلاعات فعالیت معتبر نیست.");
+                    throw new InvalidDataException("Invalid activity data.");
             var sorted = s.Sessions.OrderBy(a => a.StartUtc).ToList();
-            for (int i = 1; i < sorted.Count; i++) if (sorted[i].StartUtc < sorted[i - 1].EndUtc) throw new InvalidDataException("فعالیت‌های فایل با هم هم‌پوشانی دارند.");
+            for (int i = 1; i < sorted.Count; i++) if (sorted[i].StartUtc < sorted[i - 1].EndUtc) throw new InvalidDataException("Activities in the file overlap.");
             if (s.Active != null && (!ids.Contains(s.Active.ProjectId) || s.Active.StartUtc < 1 || s.Active.StartUtc >= DateTime.MaxValue.Ticks || s.Active.LastSeenUtc < s.Active.StartUtc || sorted.Any(a => a.EndUtc > s.Active.StartUtc)))
-                throw new InvalidDataException("اطلاعات تایمر فعال معتبر نیست.");
+                throw new InvalidDataException("Invalid running-timer data.");
             if (s.Settings.DailyGoalMinutes < 0 || s.Settings.DailyGoalMinutes > 1440) s.Settings.DailyGoalMinutes = 480;
             if (s.Settings.Theme != "light" && s.Settings.Theme != "dark") s.Settings.Theme = "system";
             if (s.Settings.IdleMinutes < 0 || s.Settings.IdleMinutes > 240) s.Settings.IdleMinutes = 15;
@@ -400,11 +398,11 @@ namespace Rooznegar
                 try
                 {
                     var s = Parse(File.ReadAllText(FilePath + ".bak", Encoding.UTF8));
-                    RecoveryMessage = "فایل اصلی خوانده نشد. آخرین نسخهٔ پشتیبان بازیابی شد.";
+                    RecoveryMessage = "The main data file could not be read. The latest backup was restored.";
                     if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".damaged-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture), true);
                     return s;
                 }
-                catch { throw new IOException("داده‌ها قابل خواندن نیستند. فایل‌های موجود حفظ شده‌اند. مسیر: " + DirectoryPath, primary); }
+                catch { throw new IOException("The data could not be read. Existing files were kept. Folder: " + DirectoryPath, primary); }
             }
         }
         public void Save(AppState state)

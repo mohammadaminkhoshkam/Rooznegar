@@ -10,8 +10,8 @@ PASS midnight splits ten and twenty minutes
 PASS daily slices belong to correct dates
 PASS multi-day sleep preserves all 79 hours
 PASS exact midnight has no empty extra day
-PASS Persian leap year and Nowruz
-PASS Saturday weeks and Persian month boundary
+PASS leap day and ISO dates
+PASS Monday weeks and month boundary
 PASS durations exceeding 24 hours are not wrapped
 PASS manual overlaps are rejected
 PASS touching sessions are allowed
@@ -34,7 +34,7 @@ PASS streak counts consecutive goal days
 PASS streak survives while today is in progress
 PASS without a goal any tracked day counts
 PASS day totals follow midnight split
-PASS time parsing accepts Persian digits and shorthands
+PASS time parsing accepts shorthands
 PASS invalid times are rejected
 PASS compact and readable durations
 PASS version 1.0 data files load with new defaults

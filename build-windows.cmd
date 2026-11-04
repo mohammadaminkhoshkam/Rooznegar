@@ -8,15 +8,15 @@ if not exist "%CSC_PATH%" (
   echo .NET Framework C# compiler was not found.
   exit /b 1
 )
-rem Vazirmatn is embedded in the executable, so nothing has to be installed on the user's PC.
-set "FONTS=/resource:fonts\Vazirmatn-Regular.ttf,Rooznegar.Fonts.Vazirmatn-Regular.ttf /resource:fonts\Vazirmatn-Medium.ttf,Rooznegar.Fonts.Vazirmatn-Medium.ttf /resource:fonts\Vazirmatn-Bold.ttf,Rooznegar.Fonts.Vazirmatn-Bold.ttf /resource:fonts\Vazirmatn-ExtraBold.ttf,Rooznegar.Fonts.Vazirmatn-ExtraBold.ttf"
+rem Inter is embedded in the executable, so nothing has to be installed on the user's PC.
+set "FONTS=/resource:fonts\Inter-Regular.ttf,Rooznegar.Fonts.Inter-Regular.ttf /resource:fonts\Inter-Medium.ttf,Rooznegar.Fonts.Inter-Medium.ttf /resource:fonts\Inter-Bold.ttf,Rooznegar.Fonts.Inter-Bold.ttf /resource:fonts\Inter-ExtraBold.ttf,Rooznegar.Fonts.Inter-ExtraBold.ttf"
 "%CSC_PATH%" /nologo /target:winexe /platform:anycpu /optimize+ /win32icon:build\Rooznegar.ico /win32manifest:src\app.manifest /out:build\Rooznegar.exe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll %FONTS% src\*.cs
 if errorlevel 1 exit /b 1
 "%CSC_PATH%" /nologo /target:exe /out:build\Tests.exe /reference:System.Web.Extensions.dll src\Core.cs tests\Tests.cs
 if errorlevel 1 exit /b 1
 build\Tests.exe
 if errorlevel 1 exit /b 1
-copy /y fonts\OFL.txt build\Vazirmatn-OFL.txt >nul
+copy /y fonts\Inter-OFL.txt build\Inter-OFL.txt >nul
 if not exist ..\deliverables mkdir ..\deliverables
 where makensis >nul 2>nul
 if errorlevel 1 (

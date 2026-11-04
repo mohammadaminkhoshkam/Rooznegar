@@ -7,9 +7,9 @@ using Rooznegar;
 public static class Tests
 {
     static int count;
-    static TimeZoneInfo zone = TimeZoneInfo.CreateCustomTimeZone("TestIran", TimeSpan.FromMinutes(210), "Test Iran", "Test Iran");
+    static TimeZoneInfo zone = TimeZoneInfo.CreateCustomTimeZone("Test+0330", TimeSpan.FromMinutes(210), "Test +03:30", "Test +03:30");
     static long U(DateTime t) { return Dates.Utc(t, zone); }
-    static DateTime date = Dates.Persian.ToDateTime(1405, 3, 15, 0, 0, 0, 0);
+    static DateTime date = new DateTime(2026, 6, 5);
     static void Check(bool ok, string name) { if (!ok) throw new Exception("FAIL: " + name); count++; Console.WriteLine("PASS " + name); }
     static void Throws(Action action, string name) { try { action(); } catch (ArgumentException) { Check(true, name); return; } catch (InvalidOperationException) { Check(true, name); return; } Check(false, name); }
     public static void Main()
@@ -36,10 +36,10 @@ public static class Tests
         Check(multi.Count == 5 && multi.Sum(x => x.Duration) == TimeSpan.TicksPerHour * 79, "multi-day sleep preserves all 79 hours");
         var boundary = Engine.Split("n", a, U(date), U(date.AddDays(1)), "", false, false, zone).ToList();
         Check(boundary.Count == 1 && boundary[0].Duration == TimeSpan.TicksPerDay, "exact midnight has no empty extra day");
-        var nowruz = Dates.Persian.ToDateTime(1403, 12, 30, 0, 0, 0, 0);
-        Check(Dates.Short(nowruz.AddDays(1)) == "۱۴۰۴/۰۱/۰۱", "Persian leap year and Nowruz");
-        Check(Dates.WeekStart(date).DayOfWeek == DayOfWeek.Saturday && Dates.Persian.GetDayOfMonth(Dates.MonthStart(date)) == 1, "Saturday weeks and Persian month boundary");
-        Check(Dates.Duration(TimeSpan.TicksPerHour * 125 + TimeSpan.TicksPerMinute * 3) == "۱۲۵:۰۳:۰۰", "durations exceeding 24 hours are not wrapped");
+        var leap = new DateTime(2024, 2, 28);
+        Check(Dates.Short(leap.AddDays(1)) == "2024-02-29" && Dates.Short(leap.AddDays(2)) == "2024-03-01", "leap day and ISO dates");
+        Check(Dates.WeekStart(date).DayOfWeek == DayOfWeek.Monday && Dates.WeekStart(new DateTime(2026, 6, 7)) == new DateTime(2026, 6, 1) && Dates.MonthStart(date) == new DateTime(2026, 6, 1), "Monday weeks and month boundary");
+        Check(Dates.Duration(TimeSpan.TicksPerHour * 125 + TimeSpan.TicksPerMinute * 3) == "125:03:00", "durations exceeding 24 hours are not wrapped");
         var manual = AppState.Sample(); string p = manual.Projects[0].Id;
         Engine.SaveSession(manual, new Session { ProjectId = p, StartUtc = t, EndUtc = t + TimeSpan.TicksPerHour, Note = "text", Manual = true }, t + TimeSpan.TicksPerDay);
         Throws(() => Engine.SaveSession(manual, new Session { ProjectId = p, StartUtc = t + 1, EndUtc = t + TimeSpan.TicksPerHour * 2 }, t + TimeSpan.TicksPerDay), "manual overlaps are rejected");
@@ -56,10 +56,10 @@ public static class Tests
         var path = Path.Combine(Path.GetTempPath(), "rooznegar-test-" + Guid.NewGuid().ToString("N")); var store = new Store(path);
         try
         {
-            var clean = AppState.Sample(); store.Save(clean); clean.Projects[0].Name = "تغییر نام"; store.Save(clean);
-            Check(store.Load().Projects[0].Name == "تغییر نام" && File.Exists(store.FilePath + ".bak"), "atomic file persistence and previous backup");
+            var clean = AppState.Sample(); store.Save(clean); clean.Projects[0].Name = "Renamed"; store.Save(clean);
+            Check(store.Load().Projects[0].Name == "Renamed" && File.Exists(store.FilePath + ".bak"), "atomic file persistence and previous backup");
             File.WriteAllText(store.FilePath, "broken"); var fallback = new Store(path); var recovered = fallback.Load();
-            Check(recovered.Projects[0].Name == "یادگیری زبان" && fallback.RecoveryMessage != null, "corrupt primary recovers previous valid state");
+            Check(recovered.Projects[0].Name == "Language learning" && fallback.RecoveryMessage != null, "corrupt primary recovers previous valid state");
             Check(Directory.GetFiles(Path.Combine(path, "Backups")).Length == 1, "daily recovery checkpoint exists");
             Check(Directory.GetFiles(path, "*.damaged-*").Length == 1, "damaged data is preserved for recovery");
         }
@@ -88,9 +88,9 @@ public static class Tests
         Check(Engine.Streak(days, TimeSpan.TicksPerHour * 8, date.AddDays(1)) == 2, "streak survives while today is in progress");
         Check(Engine.Streak(days, 0, date) == 3, "without a goal any tracked day counts");
         Check(Engine.DayTotals(split)[date] == TimeSpan.TicksPerMinute * 10, "day totals follow midnight split");
-        Check(Dates.ParseTime("۹:۰۵") == new TimeSpan(9, 5, 0) && Dates.ParseTime("0930") == new TimeSpan(9, 30, 0) && Dates.ParseTime("23.59.10") == new TimeSpan(23, 59, 10), "time parsing accepts Persian digits and shorthands");
+        Check(Dates.ParseTime("9:05") == new TimeSpan(9, 5, 0) && Dates.ParseTime("0930") == new TimeSpan(9, 30, 0) && Dates.ParseTime("23.59.10") == new TimeSpan(23, 59, 10), "time parsing accepts shorthands");
         Throws(() => Dates.ParseTime("25:00"), "invalid times are rejected");
-        Check(Dates.Hm(TimeSpan.TicksPerHour * 26 + TimeSpan.TicksPerMinute * 7) == "۲۶:۰۷" && Dates.Human(TimeSpan.TicksPerMinute * 95) == "۱ ساعت و ۳۵ دقیقه", "compact and readable durations");
+        Check(Dates.Hm(TimeSpan.TicksPerHour * 26 + TimeSpan.TicksPerMinute * 7) == "26:07" && Dates.Human(TimeSpan.TicksPerMinute * 95) == "1 hour 35 minutes" && Dates.Human(TimeSpan.TicksPerMinute * 120) == "2 hours", "compact and readable durations");
         var legacy = Store.Parse("{\"Schema\":1,\"Projects\":[{\"Id\":\"a\",\"Name\":\"x\",\"Color\":\"#0F766E\",\"Archived\":false}],\"Sessions\":[],\"Active\":null,\"Settings\":{\"DailyGoalMinutes\":300,\"StartWithWindows\":false}}");
         Check(legacy.Settings.DailyGoalMinutes == 300 && legacy.Settings.Theme == "system" && legacy.Settings.IdleMinutes == 15 && !legacy.Settings.AskAfterSleep && legacy.Settings.GlobalHotkey && legacy.Projects[0].WeeklyGoalMinutes == 0, "version 1.0 data files load with new defaults");
         var odd = AppState.Sample(); odd.Settings.Theme = "neon"; odd.Settings.IdleMinutes = -4; odd.Projects[0].WeeklyGoalMinutes = -1; Store.Validate(odd);
@@ -105,7 +105,7 @@ public static class Tests
             && del.Sessions.Count == 1 && del.Sessions[0].ProjectId == d1, "deleting a project stops its timer and removes only its activities");
         Store.Validate(del); Check(true, "state stays valid after deleting a project");
         Throws(() => Engine.DeleteProject(del, "missing", t), "deleting an unknown project is rejected");
-        var lost = new Project { Id = d0, Name = "یادگیری زبان", Color = "#0F766E" };
+        var lost = new Project { Id = d0, Name = "Language learning", Color = "#0F766E" };
         Engine.SaveSession(del, new Session { ProjectId = d1, StartUtc = t + TimeSpan.TicksPerMinute * 30, EndUtc = t + TimeSpan.TicksPerMinute * 50 }, t + TimeSpan.TicksPerDay);
         int skippedRestore = Engine.RestoreProject(del, lost, gone);
         Check(skippedRestore == 1 && del.Projects.Any(q => q.Id == d0) && del.Sessions.Count(x => x.ProjectId == d0) == 1, "undo restores the project and skips activities that now overlap");

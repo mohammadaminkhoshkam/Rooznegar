@@ -1,16 +1,14 @@
 # Rooznegar
 
-**A standalone Windows time tracker with a Persian (RTL) interface and the Jalali (Solar Hijri) calendar.**
+**A standalone project time tracker for Windows, built with C# and WinForms.**
 
-Built in C# on .NET Framework with WinForms, with every control custom-drawn: cards, vector icons, hover states, tooltips, charts and a Jalali date picker. It ships as a single `.exe` with the Vazirmatn font embedded.
-
-[فارسی](README.fa.md)
+Every control is custom-drawn, including cards, vector icons, hover states, tooltips, charts and the date picker, and the Inter font is embedded. The app ships as a single `.exe` with no dependencies beyond .NET Framework. *Rooznegar* means "daily journal" in Persian.
 
 | Light theme | Dark theme |
 |---|---|
-| ![Dashboard, light theme](preview-laptop/light-dashboard.png) | ![Dashboard, dark theme](preview-laptop/dark-dashboard.png) |
-| ![Reports, light theme](preview-laptop/light-reports.png) | ![Reports, dark theme](preview-laptop/dark-reports.png) |
-| ![Timesheet, light theme](preview-laptop/light-timesheet.png) | ![Timesheet, dark theme](preview-laptop/dark-timesheet.png) |
+| ![Dashboard, light theme](screenshots/light-dashboard.png) | ![Dashboard, dark theme](screenshots/dark-dashboard.png) |
+| ![Reports, light theme](screenshots/light-reports.png) | ![Reports, dark theme](screenshots/dark-reports.png) |
+| ![Timesheet, light theme](screenshots/light-timesheet.png) | ![Timesheet, dark theme](screenshots/dark-timesheet.png) |
 
 ## Features
 
@@ -23,19 +21,19 @@ Built in C# on .NET Framework with WinForms, with every control custom-drawn: ca
   - a global hotkey <kbd>Ctrl+Alt+Space</kbd> to start or stop
   - idle detection with three choices: keep the time, discard it and continue, or discard it and stop
   - Pomodoro-style break reminders
-  - resuming the last project from the tray, the sidebar or a hotkey
-  - a tray icon that shows a dot in the active project's colour
-  - Jalali date and range pickers
+  - resuming the last project from the tray, the sidebar or the hotkey
+  - a tray icon that shows a dot in the active project's color
+  - calendar date and range pickers
   - in-app toasts instead of message boxes
   - keyboard shortcuts <kbd>Ctrl+1..4</kbd>, <kbd>Ctrl+N</kbd>, <kbd>Ctrl+M</kbd>, <kbd>Ctrl+F</kbd> and <kbd>Ctrl+T</kbd>
-- **Display:** light and dark themes that can follow the Windows setting (including a dark title bar), and proper DPI scaling at 125%, 150% and higher.
+- **Display:** light and dark themes that can follow the Windows setting (including a dark title bar), and correct DPI scaling at 125%, 150% and higher.
 
 ### Reliability
 
 - Sessions can never overlap, and sessions that cross midnight are split per day.
-- Sleep time counts as work by default; asking after sleep can be turned on in Settings.
+- Time is computed from UTC timestamps rather than timer ticks, so it survives sleep, restarts and DST changes.
 - Saves are atomic, a daily backup is kept, and corrupt files are recovered from the last valid state.
-- CSV export is protected against formula injection.
+- CSV export is protected against spreadsheet formula injection.
 - Unexpected errors never close the app. They are logged to `%LOCALAPPDATA%\Rooznegar\errors.log` while the timer and data are kept, and a rendering error in one section only blanks that section.
 
 ## Tech stack
@@ -44,28 +42,34 @@ Built in C# on .NET Framework with WinForms, with every control custom-drawn: ca
 |---|---|
 | Language | C# 5 |
 | Runtime | .NET Framework 4.7.2+ (Windows 10 / 11) |
-| UI | WinForms, fully custom-painted (GDI+) |
-| Font | [Vazirmatn](https://github.com/rastikerdar/vazirmatn), embedded as a resource |
+| UI | WinForms, fully custom-painted with GDI+ |
+| Font | [Inter](https://github.com/rsms/inter), embedded as a resource |
 | Installer | NSIS 3, per-user install with no admin rights needed |
 | Build | `csc.exe` from .NET Framework; no Visual Studio or NuGet needed |
+
+## How the UI is drawn
+
+All pages derive from a small `Surface` control (`src/Controls.cs`) that handles painting, hit-testing, hover, tooltips and scrolling. Pages paint themselves each frame from an immutable `Snapshot` of the data and register clickable regions with `AddHit`.
+
+The layout code is direction-agnostic. It measures from the reading-start edge, and `Ui.Mirror` (`src/Theme.cs`) flips each surface's coordinate system for left-to-right reading. Text and icons are drawn unmirrored at their mirrored positions, and mouse input is mapped back through `Surface.ToLogical`. A single flag, `Ui.Rtl`, switches the layout direction.
 
 ## Project structure
 
 | Path | Purpose |
 |---|---|
-| `src/Core.cs` | Data model, Jalali calendar, time engine, idle-time removal, project delete/undo, streaks, CSV, persistence and recovery |
-| `src/Theme.cs` | Light/dark palettes, embedded font loading, drawing helpers, vector icons |
+| `src/Core.cs` | Data model, dates, time engine, idle-time removal, project delete/undo, streaks, CSV, persistence and recovery |
+| `src/Theme.cs` | Light/dark palettes, embedded font loading, layout mirroring, drawing helpers, vector icons |
 | `src/Controls.cs` | Custom surface base class (hover, tooltip, scrolling), buttons, text input, toasts |
 | `src/Pages.cs` | Sidebar, dashboard, timesheet, reports, settings |
-| `src/Dialogs.cs` | Dialogs: Jalali calendar, range picker, project editor, manual entry, idle prompt |
+| `src/Dialogs.cs` | Dialogs: calendar, range picker, project editor, manual entry, idle prompt |
 | `src/Mini.cs` | Floating mini timer |
-| `src/App.cs` | Main window, tray icon, global hotkey, idle detection, break reminders |
-| `src/Program.cs` | Entry point, single-instance lock, preview and test modes |
-| `tests/Tests.cs` | Self-contained tests for time logic and persistence |
+| `src/App.cs` | Main window, tray icon, global hotkey, idle detection, break reminders, screenshot and smoke-test modes |
+| `src/Program.cs` | Entry point, single-instance lock, demo data |
+| `tests/Tests.cs` | Self-contained tests for the time logic and persistence |
 | `installer.nsi` | Installer and uninstaller |
 | `build-windows.cmd` | Builds the app, runs the tests and builds the installer |
-| `fonts/` | Vazirmatn font files and their OFL licence |
-| `build/Guide-FA.html` | User guide (Persian) |
+| `fonts/` | Inter font files and their OFL licence |
+| `build/Guide.html` | User guide |
 
 ## Building
 
@@ -77,13 +81,14 @@ The script compiles with the C# compiler that ships with .NET Framework, embeds 
 
 ## Testing
 
-- **Unit tests:** 50 tests cover the time engine (midnight splits, sleep, DST, Jalali leap years, overlaps), persistence and recovery, CSV, project delete and undo, and idle handling. All 50 pass; see [`test-results.txt`](test-results.txt).
-- **UI smoke test:** `Rooznegar.exe --smoke` opens every page in both themes at three window sizes and sweeps the mouse over each one to render every hover state and tooltip. It also runs every report range, empty days, activity and project delete/undo, every dialog and the mini timer, and fails on any logged error; see [`ui-test-results.txt`](ui-test-results.txt). To confirm the test catches real failures, a deliberate bug was injected into chart rendering and the test failed as expected.
+- **Unit tests:** 50 tests cover the time engine (midnight splits, sleep, DST, leap days, overlaps), persistence and recovery, CSV, project delete and undo, and idle handling. All 50 pass; see [`test-results.txt`](test-results.txt).
+- **UI smoke test:** `Rooznegar.exe --smoke` opens every page in both themes at three window sizes and sweeps the mouse over each one to render every hover state and tooltip. It also runs every report range, empty days, activity and project delete/undo, every dialog and the mini timer, and fails on any logged error; see [`ui-test-results.txt`](ui-test-results.txt).
+- **Screenshots:** `Rooznegar.exe --preview <folder>` renders every page and dialog with demo data. The images above were made this way.
 
 ## Data
 
-Data lives in `%LOCALAPPDATA%\Rooznegar\data.json`. Files from version 1 load without conversion.
+Data lives in `%LOCALAPPDATA%\Rooznegar\data.json` and never leaves the PC. Uninstalling does not delete it.
 
 ## Notes
 
-The screenshots were taken at 1366×768 with demo data, in a Linux preview where Persian letters are joined by a simple built-in shaper; on Windows the OS shapes the text. Installation on real Windows, the global hotkey, idle detection and hardware sleep were not tested in that environment. The app and installer are not code-signed.
+The app and installer are not code-signed, so Windows SmartScreen may warn on first run.
