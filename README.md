@@ -92,3 +92,7 @@ Data lives in `%LOCALAPPDATA%\Rooznegar\data.json` and never leaves the PC. Unin
 ## Notes
 
 The app and installer are not code-signed, so Windows SmartScreen may warn on first run.
+
+## License
+
+Rooznegar is released under the [MIT License](LICENSE). The bundled Inter font is licensed separately under the [SIL Open Font License 1.1](fonts/Inter-OFL.txt).
