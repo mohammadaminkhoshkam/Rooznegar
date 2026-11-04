@@ -1,74 +1,89 @@
-# روزنگار ۲٫۰٫۰
+# Rooznegar
 
-برنامهٔ مستقل ویندوز برای ثبت زمان پروژه‌ها با رابط فارسی و تاریخ شمسی.
+**A standalone Windows time tracker with a Persian (RTL) interface and the Jalali (Solar Hijri) calendar.**
 
-## تازه‌های نسخهٔ ۲
+Built in C# on .NET Framework with WinForms, with every control custom-drawn: cards, vector icons, hover states, tooltips, charts and a Jalali date picker. It ships as a single `.exe` with the Vazirmatn font embedded.
 
-- **رابط کاملاً بازطراحی‌شده:** همهٔ اجزا به‌صورت سفارشی رسم می‌شوند؛ کارت‌ها، آیکون‌های برداری، حالت hover و راهنمای کوچک (tooltip) روی دکمه‌ها.
-- **فونت وزیرمتن جاسازی‌شده:** فونت داخل فایل اجرایی است و نصب جداگانه نمی‌خواهد. اگر بارگذاری نشود، برنامه به Segoe UI یا Tahoma برمی‌گردد.
-- **پشتیبانی درست از DPI:** چیدمان با مقیاس نمایشگر (۱۲۵٪، ۱۵۰٪ و…) بزرگ می‌شود و متن‌ها بریده نمی‌شوند.
-- **پوستهٔ روشن و تیره:** همراه با هماهنگی خودکار با ویندوز و نوار عنوان تیره.
-- **نمای کلی:** کارت تایمر بزرگ با یادداشت، دکمه‌های شروع سریع آخرین پروژه‌ها، حلقهٔ پیشرفت هدف روزانه، شمارش روزهای پیاپی و کارت‌های امروز، این هفته، این ماه و کل.
-- **حذف پروژه:** از پنجرهٔ «ویرایش پروژه»؛ پیش از حذف، تعداد و مجموع زمان فعالیت‌هایی که پاک می‌شوند نمایش داده می‌شود و تا چند ثانیه بعد با «بازگردانی» برمی‌گردد. برای پنهان کردن بدون پاک‌شدن سوابق، بایگانی کنید.
-- **کارت پروژه:** دکمهٔ پخش/توقف، زمان امروز، هدف هفتگی اختیاری با نوار پیشرفت، و جست‌وجوی مستقیم بدون پنجرهٔ جداگانه.
-- **تایم‌شیت:** نوار هفته با جمع هر روز، خط زمان ۲۴ساعته، ادامهٔ یک فعالیت با یک کلیک، و حذف با «بازگردانی».
-- **گزارش‌ها:** نمودار ستونی انباشته به تفکیک پروژه (روزانه، هفتگی یا ماهانه)، نمودار حلقه‌ای سهم پروژه‌ها، تقویم فعالیت (heatmap)، میانگین روزانه، روزهای فعال و بهترین روز.
-- **ایده‌هایی از برنامه‌های مشابه (Toggl، Clockify، RescueTime، Forest):**
-  - تایمر شناور همیشه‌رو (mini timer)
-  - میان‌بر سراسری <kbd>Ctrl+Alt+Space</kbd> برای شروع یا توقف
-  - تشخیص دوری از سیستم (idle detection) با سه گزینه: نگه‌داشتن، حذف و ادامه، حذف و توقف
-  - یادآور استراحت به سبک پومودورو
-  - ادامهٔ آخرین پروژه از منوی کنار ساعت، نوار کناری یا میان‌بر
-  - نشان کنار ساعت که هنگام ثبت، نقطه‌ای به رنگ پروژه می‌گیرد
-  - انتخاب تاریخ با تقویم شمسی و انتخاب بازه با دو کلیک
-  - اعلان‌های کوتاه درون‌برنامه‌ای به‌جای پنجره‌های پیام
-  - میان‌برهای صفحه‌کلید: <kbd>Ctrl+1..4</kbd>، <kbd>Ctrl+N</kbd>، <kbd>Ctrl+M</kbd>، <kbd>Ctrl+F</kbd>، <kbd>Ctrl+T</kbd>
+[فارسی](README.fa.md)
 
-برنامه بدون پروژهٔ پیش‌فرض شروع می‌شود و پروژه‌ها را خودتان می‌سازید (داده‌های قبلی دست‌نخورده می‌مانند).
-
-رفتارهای نسخهٔ ۱ حفظ شده‌اند: هم‌پوشانی ممنوع است، فعالیت در نیمه‌شب تقسیم می‌شود، **اسلیپ به‌طور پیش‌فرض جزو کار حساب می‌شود** (پرسیدن بعد از اسلیپ در تنظیمات قابل روشن‌کردن است)، ذخیره اتمی است و پشتیبان روزانه گرفته می‌شود. فایل دادهٔ نسخهٔ ۱ بدون تبدیل خوانده می‌شود.
-
-## نصب و استفاده
-
-`Rooznegar-Setup-2.0.0.exe` را اجرا کنید. نصب برای کاربر فعلی است و دسترسی مدیر نمی‌خواهد. هدف ساخت، ویندوز ۱۰ و ۱۱ با .NET Framework 4.7.2 یا جدیدتر است.
-
-راهنمای کامل در `build/Guide-FA.html` است.
-
-## ساخت روی ویندوز
-
-`build-windows.cmd` را اجرا کنید. این اسکریپت از کامپایلر C# خود .NET Framework استفاده می‌کند (کد با C# 5 سازگار است)، فونت‌های پوشهٔ `fonts` را داخل exe جاسازی می‌کند، آزمون‌ها را اجرا می‌کند و اگر NSIS 3 در PATH باشد، نصاب را هم می‌سازد.
-
-خروجی برنامه در `build/Rooznegar.exe` و نصاب در `../deliverables/Rooznegar-Setup-2.0.0.exe` ساخته می‌شود.
-
-## ساختار پروژه
-
-| فایل | کاربرد |
+| Light theme | Dark theme |
 |---|---|
-| `src/Core.cs` | مدل داده، تقویم شمسی، موتور زمان، حذف زمان دوری، حذف و بازگردانی پروژه، روزهای پیاپی، CSV، ذخیره و بازیابی |
-| `src/Theme.cs` | رنگ‌های روشن/تیره، بارگذاری فونت جاسازی‌شده، ابزار رسم، آیکون‌های برداری |
-| `src/Controls.cs` | پایهٔ سطوح سفارشی (hover، tooltip، اسکرول)، دکمه، ورودی متن، اعلان |
-| `src/Pages.cs` | نوار کناری، نمای کلی، تایم‌شیت، گزارش‌ها، تنظیمات |
-| `src/Dialogs.cs` | پنجره‌های گفت‌وگو، تقویم شمسی، انتخاب بازه، پروژه، ثبت دستی، دوری از سیستم |
-| `src/Mini.cs` | تایمر شناور |
-| `src/App.cs` | پنجرهٔ اصلی، tray، میان‌بر سراسری، تشخیص دوری، یادآور استراحت |
-| `src/Program.cs` | اجرای برنامه، قفل تک‌نمونه، حالت پیش‌نمایش و آزمون |
-| `fonts/` | فونت وزیرمتن و مجوز OFL |
-| `tests/Tests.cs` | آزمون‌های مستقل منطق زمان و ذخیره |
-| `installer.nsi` | نصب و حذف فارسی |
-| `build-windows.cmd` | ساخت برنامه، آزمون‌ها و نصاب |
+| ![Dashboard, light theme](preview-laptop/light-dashboard.png) | ![Dashboard, dark theme](preview-laptop/dark-dashboard.png) |
+| ![Reports, light theme](preview-laptop/light-reports.png) | ![Reports, dark theme](preview-laptop/dark-reports.png) |
+| ![Timesheet, light theme](preview-laptop/light-timesheet.png) | ![Timesheet, dark theme](preview-laptop/dark-timesheet.png) |
 
-## داده‌ها
+## Features
 
-داده‌ها در `%LOCALAPPDATA%\Rooznegar\data.json` ذخیره می‌شوند. فیلدهای جدید (پوسته، هدف هفتگی، تنظیمات تمرکز و دوری) به همان فایل اضافه می‌شوند و نسخهٔ ۱ آن‌ها را نادیده می‌گیرد.
+- **Dashboard:** a large timer card with notes, quick-start buttons for recent projects, a daily-goal progress ring, a streak counter, and totals for today, this week, this month and all time.
+- **Projects:** start and stop from each project card, see today's time, set an optional weekly goal with a progress bar, search inline, and archive or delete projects. Deleting first shows what will be removed and can be undone for a few seconds.
+- **Timesheet:** a week strip with daily totals, a 24-hour timeline, one-click "continue" for any activity, and delete with undo.
+- **Reports:** stacked bar charts per project (daily, weekly or monthly), a donut chart of project share, an activity heatmap, the daily average, active days and the best day. Reports export to CSV.
+- **Ideas borrowed from Toggl, Clockify, RescueTime and Forest:**
+  - an always-on-top floating mini timer
+  - a global hotkey <kbd>Ctrl+Alt+Space</kbd> to start or stop
+  - idle detection with three choices: keep the time, discard it and continue, or discard it and stop
+  - Pomodoro-style break reminders
+  - resuming the last project from the tray, the sidebar or a hotkey
+  - a tray icon that shows a dot in the active project's colour
+  - Jalali date and range pickers
+  - in-app toasts instead of message boxes
+  - keyboard shortcuts <kbd>Ctrl+1..4</kbd>, <kbd>Ctrl+N</kbd>, <kbd>Ctrl+M</kbd>, <kbd>Ctrl+F</kbd> and <kbd>Ctrl+T</kbd>
+- **Display:** light and dark themes that can follow the Windows setting (including a dark title bar), and proper DPI scaling at 125%, 150% and higher.
 
-## خطاها
+### Reliability
 
-اگر خطای پیش‌بینی‌نشده‌ای رخ دهد، برنامه بسته نمی‌شود: جزئیات در `%LOCALAPPDATA%\Rooznegar\errors.log` ثبت می‌شود و تایمر و داده‌ها حفظ می‌شوند. خطای رسم یک بخش هم فقط همان بخش را خالی می‌گذارد.
+- Sessions can never overlap, and sessions that cross midnight are split per day.
+- Sleep time counts as work by default; asking after sleep can be turned on in Settings.
+- Saves are atomic, a daily backup is kept, and corrupt files are recovered from the last valid state.
+- CSV export is protected against formula injection.
+- Unexpected errors never close the app. They are logged to `%LOCALAPPDATA%\Rooznegar\errors.log` while the timer and data are kept, and a rendering error in one section only blanks that section.
 
-## اعتبارسنجی
+## Tech stack
 
-۵۰ آزمون منطق زمان، ذخیره، CSV، حذف و بازگردانی پروژه، شروع خالی و امکانات تازه موفق بوده است (`test-results.txt`).
+| | |
+|---|---|
+| Language | C# 5 |
+| Runtime | .NET Framework 4.7.2+ (Windows 10 / 11) |
+| UI | WinForms, fully custom-painted (GDI+) |
+| Font | [Vazirmatn](https://github.com/rastikerdar/vazirmatn), embedded as a resource |
+| Installer | NSIS 3, per-user install with no admin rights needed |
+| Build | `csc.exe` from .NET Framework; no Visual Studio or NuGet needed |
 
-آزمون خودکار رابط (`Rooznegar.exe --smoke`) همهٔ صفحه‌ها را در دو پوسته و سه اندازهٔ پنجره باز می‌کند، ماوس را روی تمام سطح هر صفحه می‌گرداند تا همهٔ حالت‌های hover و راهنما رسم شوند، همهٔ بازه‌های گزارش (از جمله بازهٔ آینده و چندساله)، روزهای خالی، حذف و بازگردانی فعالیت، حذف پروژهٔ در حال ثبت و بازگردانی آن، حذف همهٔ پروژه‌ها، تنظیمات، تایمر شناور و همهٔ پنجره‌های گفت‌وگو را اجرا می‌کند و با کوچک‌ترین خطای ثبت‌شده شکست می‌خورد (`ui-test-results.txt`). برای اطمینان از حساسیت آزمون، یک خطای عمدی در رسم نمودار تزریق شد و آزمون آن را گرفت. تصاویر `preview-laptop` با داده‌های نمایشی در اندازهٔ ۱۳۶۶×۷۶۸ گرفته شده‌اند.
+## Project structure
 
-در پیش‌نمایش لینوکسی، چینش حروف فارسی با یک شبیه‌ساز ساده انجام می‌شود؛ در ویندوز خود سیستم‌عامل حروف را می‌چیند. نصب روی ویندوز واقعی، میان‌بر سراسری، تشخیص دوری و اسلیپ سخت‌افزاری در این محیط آزمایش نشده‌اند. برنامه و نصاب امضای دیجیتال ندارند.
+| Path | Purpose |
+|---|---|
+| `src/Core.cs` | Data model, Jalali calendar, time engine, idle-time removal, project delete/undo, streaks, CSV, persistence and recovery |
+| `src/Theme.cs` | Light/dark palettes, embedded font loading, drawing helpers, vector icons |
+| `src/Controls.cs` | Custom surface base class (hover, tooltip, scrolling), buttons, text input, toasts |
+| `src/Pages.cs` | Sidebar, dashboard, timesheet, reports, settings |
+| `src/Dialogs.cs` | Dialogs: Jalali calendar, range picker, project editor, manual entry, idle prompt |
+| `src/Mini.cs` | Floating mini timer |
+| `src/App.cs` | Main window, tray icon, global hotkey, idle detection, break reminders |
+| `src/Program.cs` | Entry point, single-instance lock, preview and test modes |
+| `tests/Tests.cs` | Self-contained tests for time logic and persistence |
+| `installer.nsi` | Installer and uninstaller |
+| `build-windows.cmd` | Builds the app, runs the tests and builds the installer |
+| `fonts/` | Vazirmatn font files and their OFL licence |
+| `build/Guide-FA.html` | User guide (Persian) |
+
+## Building
+
+```cmd
+build-windows.cmd
+```
+
+The script compiles with the C# compiler that ships with .NET Framework, embeds the fonts from `fonts/`, runs the tests, and builds the installer if NSIS 3 is on `PATH`. The app is written to `build/Rooznegar.exe` and the installer to `../deliverables/Rooznegar-Setup-2.0.0.exe`.
+
+## Testing
+
+- **Unit tests:** 50 tests cover the time engine (midnight splits, sleep, DST, Jalali leap years, overlaps), persistence and recovery, CSV, project delete and undo, and idle handling. All 50 pass; see [`test-results.txt`](test-results.txt).
+- **UI smoke test:** `Rooznegar.exe --smoke` opens every page in both themes at three window sizes and sweeps the mouse over each one to render every hover state and tooltip. It also runs every report range, empty days, activity and project delete/undo, every dialog and the mini timer, and fails on any logged error; see [`ui-test-results.txt`](ui-test-results.txt). To confirm the test catches real failures, a deliberate bug was injected into chart rendering and the test failed as expected.
+
+## Data
+
+Data lives in `%LOCALAPPDATA%\Rooznegar\data.json`. Files from version 1 load without conversion.
+
+## Notes
+
+The screenshots were taken at 1366×768 with demo data, in a Linux preview where Persian letters are joined by a simple built-in shaper; on Windows the OS shapes the text. Installation on real Windows, the global hotkey, idle detection and hardware sleep were not tested in that environment. The app and installer are not code-signed.
