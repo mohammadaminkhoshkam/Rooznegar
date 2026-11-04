@@ -1,0 +1,8 @@
+# Build outputs (recreated by build-windows.cmd)
+build/*.exe
+build/Vazirmatn-OFL.txt
+deliverables/
+
+# Archives
+*.rar
+*.zip

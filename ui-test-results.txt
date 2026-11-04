@@ -1,0 +1,14 @@
+  ok  start / switch / stop / resume / toggle
+  ok  light theme: all pages, sizes and hover sweep
+  ok  dark theme: all pages, sizes and hover sweep
+  ok  report ranges
+  ok  timesheet days
+  ok  continue / delete / undo activity
+  ok  settings, mini widget, themes
+  ok  dashboard states
+  ok  delete running project
+  ok  undo project deletion
+  ok  no projects at all
+  ok  all dialogs
+  ok  toast
+UI SMOKE PASS
